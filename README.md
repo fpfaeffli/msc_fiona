@@ -30,4 +30,15 @@ List all the available branches using
 
 Make sure that you are always in your branch when you commit your changes.
 
+Stage your created/changed files for a commit 
+
+  ** git add file.py **
+
+  ** git commit -m "Commit message..."
+
+  ** git push
+
+To push the current branch and set the remote as upstream (required for the first time), use
+
+  ** git push --set-upstream origin [name_of_your_new_branch, e.g. "fiona"] **
 
