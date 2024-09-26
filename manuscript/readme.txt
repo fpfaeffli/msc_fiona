@@ -1,0 +1,1 @@
+This directory contains the *.tex files for writing the MSc Thesis.
