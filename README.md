@@ -14,6 +14,8 @@ msc_fiona
   - manuscript
 
 
+## Instructions
+
 Clone this repository to your local machine and create your own branch. 
 
   ** git checkout -b [name_of_your_new_branch, e.g. "fiona"] **
