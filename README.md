@@ -28,6 +28,10 @@ List all the available branches using
 
     git branch -a
 
+To change between branches use
+
+    git checkout [name_of_branch]
+
 Make sure that you are always in your branch when you commit your changes.
 
 Stage your created/changed files for a commit 
