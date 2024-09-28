@@ -46,6 +46,10 @@ To push the current branch and set the remote as upstream (required for the firs
 
     git push --set-upstream origin [name_of_your_new_branch, e.g. "fiona"]
 
+## Note
+
+Cloning the github repository into your home directory is the probably the best approach, since this one sees the most frequent backups. However, since you only have 50GB storage on home, it might be wise to create a directory for the plots on sea or meso. Otherwise home might fill up quite quickly, especially if you create multiple plots for, e.g., an animation. 
+
 ## Things to discuss/explain/introduce
 
 *Scientific elements*:
