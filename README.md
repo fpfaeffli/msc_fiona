@@ -38,7 +38,11 @@ Stage your created/changed files for a commit
 
     git add file.py
 
+Do the commit with a commit message
+
     git commit -m "Commit message..."
+
+Push the commit from your local machine to the remote repository
 
     git push
 
@@ -71,6 +75,10 @@ Cloning the github repository into your home directory is the probably the best 
   - Using python
     - using VSCode as IDE
     - *.py versus *.ipynb
+    - using xarray
+  - Using other programs:
+    - ncdump
+    - ncview
   - introducing different work environments (sea/kryo/meso/euler)
     - home directory (50GB) - good place to create local clone of github repository
     - data storage under /nfs/sea/work/ 
