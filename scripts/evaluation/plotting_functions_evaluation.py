@@ -1,4 +1,11 @@
 #%%
+
+# enable the visibility of the modules for the import functions
+import sys
+import os
+#sys.path.append(os.path.join(os.path.dirname(__file__), '/home/koehne/Documents/publications/paper_future_simulations/scripts_clean/modules/'))
+sys.path.append('/home/fpfaeffli/msc_fiona/scripts/modules/')
+
 import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
@@ -7,7 +14,6 @@ from get_obs_datasets import ObsGetter as ObsGetter
 from plotting_functions_general import PlotFuncs as PlotFuncs
 import cmocean as cmo
 import pandas as pd
-#sys.path.append('/home/koehne/Documents/publications/paper_future_simulations/scripts_clean/modules/')
 from regridding_tools import Regridder as Regridder
 
 #%%
@@ -215,7 +221,7 @@ class Plotter():
         plotted_values['roms_minus_obs'] = annual_mean_roms-annual_mean_Obs_on_model_grid
 
         if savefig == True:
-            outpath = f'/nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/analysis_plots/model_evaluation/model_vs_obs/map_annual_mean/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/maps_timeseries_eike/map_annual_means/'
             figname = f'{varia}_{depth}m.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
 
@@ -290,7 +296,7 @@ class Plotter():
         plotted_values['roms'] = romsoc_regional_mean
 
         if savefig == True:
-            outpath = f'/nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/analysis_plots/model_evaluation/model_vs_obs/timeseries_interannual_regionalized/{plot_resolution}/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/maps_timeseries_eike/avg_timeseries_regions/'
             figname = f'{varia}_{depth}m.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
 
@@ -381,7 +387,7 @@ class Plotter():
         plotted_values['romsoc'] = romsoc_regional_mean_clim_mean
 
         if savefig == True:
-            outpath = f'/nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/analysis_plots/model_evaluation/model_vs_obs/timeseries_climatology_regionalized/{plot_resolution}/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/maps_timeseries_eike/avg_timeseries_regions_clim/'
             figname = f'{varia}_{depth}m.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
 
@@ -449,7 +455,7 @@ class Plotter():
         plt.tight_layout()
 
         if savefig == True:
-            outpath = f'/nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/analysis_plots/model_evaluation/model_vs_obs/vertical_profiles_regionalized/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_eike/vertical_profiles/'
             figname = f'{varia}_{plot_resolution}.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
 
@@ -553,7 +559,7 @@ class Plotter():
         cbar.ax.set_title(col['obs']['unit'])
 
         if savefig == True:
-            outpath = f'/nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/analysis_plots/model_evaluation/model_vs_obs/time_vs_depth_sections_regionalized/{plot_resolution}/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_eike/time_vs_depth/'
             figname = f'{varia}.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
 
@@ -669,10 +675,10 @@ class Plotter():
         cbar.ax.set_title(col['obs']['unit'])
 
         if savefig == True:
-            outpath = f'/nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/analysis_plots/model_evaluation/model_vs_obs/time_vs_depth_sections_regionalized/{plot_resolution}/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_eike/time_vs_depth_clim/'
             figname = f'{varia}_{plot_resolution}_clim.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
-
+        
         return plotted_values
 
 
@@ -730,7 +736,7 @@ class Plotter():
         cbar.ax.set_title(col['obs']['unit'])
 
         if savefig == True:
-            outpath = f'/nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/analysis_plots/model_evaluation/model_vs_obs/depth_vs_dist2coast_transect_annual_mean/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_eike/depth_vs_dist2coast_transect/'
             figname = f'{varia}.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
 
@@ -840,7 +846,7 @@ class Plotter():
         plotted_values['roms_minus_obs'] = annual_mean_roms-annual_mean_Obs#_on_model_grid
 
         if savefig == True:
-            outpath = f'/nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/analysis_plots/model_evaluation/model_vs_obs/autocorrelation/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_eike/autocorrelation_timescales_map/'
             figname = f'{varia}_{depth}m.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
 
@@ -898,7 +904,7 @@ class Plotter():
         plt.subplots_adjust(top=0.92)
         plotted_values = xr.Dataset()
         if savefig == True:
-            outpath = f'/nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/analysis_plots/model_evaluation/model_vs_obs/autocorrelation/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_eike/autocorrelation_function_regionalized/'
             figname = f'{varia_name}_acf_{dep}m_regional_means.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
         plt.show()
@@ -1074,7 +1080,7 @@ class Plotter():
         plotted_values['roms_minus_obs'] = annual_mean_roms-annual_mean_Obs#_on_model_grid
 
         if savefig == True:
-            outpath = f'/nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/analysis_plots/model_evaluation/model_vs_obs/map_annual_mean/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_eike/map_annual_mean_std/'
             figname = f'{varia}_{depth}m.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
 
@@ -1172,7 +1178,7 @@ class Plotter():
             col['obs']['minval'],col['obs']['maxval'],col['obs']['numlevs'],col['obs']['cmap_contourf'],col['obs']['cmap_pcmesh'],col['obs']['unit'] =                          10,40,16,'cmo.deep_r',plt.get_cmap('cmo.deep_r',15) ,'    days'
             col['mod']['minval'],col['mod']['maxval'],col['mod']['numlevs'],col['mod']['cmap_contourf'],col['mod']['cmap_pcmesh'],col['mod']['unit'] =                          10,40,16,'cmo.deep_r',plt.get_cmap('cmo.deep_r',15) ,'    days'
             col['mod-obs']['minval'],col['mod-obs']['maxval'],col['mod-obs']['numlevs'],col['mod-obs']['cmap_contourf'],col['mod-obs']['cmap_pcmesh'],col['mod-obs']['unit'] =   -20,20,21,'cmo.balance',plt.get_cmap('cmo.balance',20) ,'    days'
-            col['mod-mod']['minval'],col['mod-mod']['maxval'],col['mod-mod']['numlevs'],col['mod-mod']['cmap_contourf'],col['mod-mod']['cmap_pcmesh'],col['mod-mod']['unit'] =   -20,20,21,'cmo.balance',plt.get_cmap('cmo.balance',20) ,'    days'
+            col['mod-mod']['minval'],col['mod-mod']['maxval'],col['mod-mod']['numlevs'],col['mkdir -p /nfs/sea/work/fpfaeffli/...../mod-mod']['cmap_contourf'],col['mod-mod']['cmap_pcmesh'],col['mod-mod']['unit'] =   -20,20,21,'cmo.balance',plt.get_cmap('cmo.balance',20) ,'    days'
 
         if varia == 'temp_std' and depth == 0:
             col['obs']['minval'],col['obs']['maxval'],col['obs']['numlevs'],col['obs']['cmap_contourf'],col['obs']['cmap_pcmesh'],col['obs']['unit'] =                          0.4,2,17,'cmo.deep_r',plt.get_cmap('cmo.deep_r',16) ,'    °C'

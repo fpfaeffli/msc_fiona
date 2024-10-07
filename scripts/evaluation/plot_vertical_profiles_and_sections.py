@@ -13,7 +13,7 @@ description: This file loads in the model data and compares it with the respecti
 import sys
 import os
 #sys.path.append(os.path.join(os.path.dirname(__file__), '/home/koehne/Documents/publications/paper_future_simulations/scripts_clean/modules/'))
-sys.path.append('/home/koehne/Documents/publications/paper_future_simulations/scripts_clean/modules/')
+sys.path.append('/home/fpfaeffli/msc_fiona/scripts/modules/')
 
 # load the package
 import numpy as np
@@ -145,20 +145,24 @@ for rdx, rn in enumerate(row_names):
 #####################
 
 #%%
+var = 'O2'
 print('Generate plot: Vertical profiles')
 plotted_values = Plotter.plot_vertical_profiles(var,obs_da,obs_mean_profiles,model_da,model_mean_profiles,model_regions_dict,plot_resolution,savefig=True)
 
 # %% 
+var = 'omega_arag_offl'
 print('Generate plot: Time vs depth sections')
 #if 'time' in obs_da.dims or 'month' in obs_da.dims or 'day' in obs_da.dims:
 plotted_values = Plotter.plot_time_vs_depth_sections(var,obs_da,obs_area,model_da,model_area,obs_regions_dict,model_regions_dict,plot_resolution,savefig=True)
 
 # %% 
+var = 'O2'
 print('Generate plot: Time vs depth sections climatology')
 #if 'time' in obs_da.dims or 'month' in obs_da.dims or 'day' in obs_da.dims:
 plotted_values = Plotter.plot_time_vs_depth_sections_climatology(var,obs_da,obs_area,model_da,model_area,obs_regions_dict,model_regions_dict,plot_resolution,savefig=True)
 
 # %% UNDER DEVELOPMENT
+var = 'O2'
 print('Generate plot: Depth vs. distance to coast transects')
 
 target_lats = np.array([36,43])
@@ -190,3 +194,4 @@ obs_d2coast_interp = Regridder.regrid_xr_dataarray(obs_d2coast,target_lons,targe
 plotted_values = Plotter.plot_depth_vs_dist2coast_transect(var,target_lats,obs_da_interp,obs_d2coast_interp,model_da_interp,model_d2coast_interp,savefig=True)
 
 # %%
+### AUTOCORRELATION TIMESCALE MAPS ###

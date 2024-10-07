@@ -648,3 +648,5 @@ class ModelCarbonateChemistryGetter():
     def open_isosurface_files(model_path,file_name):
         ds_isosurface = xr.open_dataset(model_path+file_name)
         return ds_isosurface
+
+# %%

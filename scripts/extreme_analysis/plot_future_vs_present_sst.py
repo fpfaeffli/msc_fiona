@@ -8,7 +8,10 @@ description: This file plots a snapshot of the present day and future blob for t
 import sys
 import os
 #sys.path.append(os.path.join(os.path.dirname(__file__), '/home/koehne/Documents/publications/paper_future_simulations/scripts_clean/modules/'))
-sys.path.append('/home/koehne/Documents/publications/paper_future_simulations/scripts_clean/modules/')
+sys.path.append('/home/fpfaeffli/msc_fiona/scripts/modules/')
+sys.path.append('/home/fpfaeffli/msc_fiona/scripts/evaluation/')
+sys.path.append('/home/fpfaeffli/msc_fiona/scripts/climatologies_and_thresholds/')
+
 
 # load the package
 import numpy as np
@@ -19,7 +22,8 @@ from statsmodels.tsa.stattools import acf
 from get_study_regions import GetRegions as GetRegions
 from get_model_datasets import ModelGetter as ModelGetter
 from get_obs_datasets import ObsGetter as ObsGetter
-from plotting_functions_extremes import ExtAnalysisPlotter as ExtAnalysisPlotter
+from plotting_functions_extremes import ExtAnalysisPlotter as ExtAnalysisPlotter # FIXME : where is this file?
+
 
 import multiprocessing
 from tqdm import tqdm

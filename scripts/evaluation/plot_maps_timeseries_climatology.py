@@ -8,12 +8,14 @@ description: This file loads in the model data and compares it with the respecti
 """
 
 #%% load packages
-
+ 
 # enable the visibility of the modules for the import functions
 import sys
 import os
 #sys.path.append(os.path.join(os.path.dirname(__file__), '/home/koehne/Documents/publications/paper_future_simulations/scripts_clean/modules/'))
-sys.path.append('/home/koehne/Documents/publications/paper_future_simulations/scripts_clean/modules/')
+sys.path.append('/home/fpfaeffli/msc_fiona/scripts/evaluation/')
+sys.path.append('/home/fpfaeffli/msc_fiona/scripts/modules/')
+
 
 
 # load the package
@@ -157,15 +159,21 @@ for config in configs:
 #####################
 
 # %% 
+var = 'omega_arag_offl'
 print('Generate plot: Map for annual mean')
-plotted_values = Plotter.plot_full_map_annual_mean(var,dep,obs_ds,obs_da,model_ds,model_da,obs_regions_dict,model_regions_dict,plot_resolution,regional_data=[regional_data_obs,regional_data_model],regional_data_plottype='lines',savefig=False)
+plotted_values = Plotter.plot_full_map_annual_mean(var,dep,obs_da,model_da,obs_regions_dict,model_regions_dict,regional_data=[regional_data_obs,regional_data_model],regional_data_plottype='lines',savefig=True)
+
 
 # %% 
+var = 'omega_arag_offl'
 print('Generate plot: Averaged timeseries in regions')
-plotted_values = Plotter.plot_area_averaged_timeseries(var,dep,obs_da,obs_area,model_da,model_area,obs_regions_dict,model_regions_dict,plot_resolution,savefig=False)
+plotted_values = Plotter.plot_area_averaged_timeseries(var,dep,obs_da,obs_area,model_da,model_area,obs_regions_dict,model_regions_dict,plot_resolution,savefig=True)
 
 # %% 
+var = 'omega_arag_offl'
 print('Generate plot: Averaged timeseries climatology in regions')
-plotted_values = Plotter.plot_area_averaged_climatology_timeseries(var,dep,obs_da,obs_area,model_da,model_area,obs_regions_dict,model_regions_dict,plot_resolution,savefig=False)
+plotted_values = Plotter.plot_area_averaged_climatology_timeseries(var,dep,obs_da,obs_area,model_da,model_area,obs_regions_dict,model_regions_dict,plot_resolution,savefig=True)
 
 # %%
+
+

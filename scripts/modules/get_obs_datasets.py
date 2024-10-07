@@ -19,7 +19,7 @@ class ObsGetter():
     description: This class contains a number of functions that enable the loading of observational data. 
     """ 
     @staticmethod
-    def get_sst_data(res='monthly',start_year=2011,end_year=2021):
+    def get_sst_data(res='monthly', start_year=2011, end_year=2021):
         """
         author: Eike Koehn
         date: Jun 7, 2024
@@ -29,34 +29,37 @@ class ObsGetter():
         if res == 'daily':
             data_path = '/nfs/kryo/work/datasets/grd/ocean/2d/obs/sst/noaa_oisst_20cm/noaa.oisst.v2.highres/'
             file_urls = []
-            years = range(start_year,end_year+1)
+            years = range(start_year, end_year+1)
             for year in years:    
                 file_urls.append(f"{data_path}/sst.day.mean.{year}.nc")
-            ds = xr.open_mfdataset(file_urls,parallel=True)
-            # data_path = 'https://www.ncei.noaa.gov/thredds/dodsC/OisstBase/NetCDF/V2.1/AVHRR/'
-            # file_urls = []
-            # years = range(start_year,end_year+1)
-            # for year in years:
-            #     months = range(1,13)
-            #     for month in months:
-            #         if month in [1,3,5,7,8,10,12]:
-            #             days = range(1,32)
-            #         elif month in [4,6,9,11]:
-            #             days = range(1,31)
-            #         elif month == 2:
-            #             if np.mod(year,4)==0:
-            #                 days = range(1,30)
-            #             else:
-            #                 days = range(1,29)
-            #         for day in days:
-            #             file_urls.append(f"{data_path}{year}{month:02}/oisst-avhrr-v02r01.{year}{month:02}{day:02}.nc")
-            # ds = xr.open_mfdataset(file_urls)
+            ds = xr.open_mfdataset(file_urls, parallel=True)
+            data_path = 'https://www.ncei.noaa.gov/thredds/dodsC/OisstBase/NetCDF/V2.1/AVHRR/'
+            file_urls = []
+            years = range(start_year, end_year+1)
+            for year in years:
+                months = range(1, 13)
+                for month in months:
+                    if month in [1, 3, 5, 7, 8, 10, 12]:
+                        days = range(1, 32)
+                    elif month in [4, 6, 9, 11]:
+                        days = range(1, 31)
+                    elif month == 2:
+                        if np.mod(year, 4) == 0:
+                            days = range(1, 30)
+                        else:
+                            days = range(1, 29)
+                    for day in days:
+                        file_urls.append(f"{data_path}{year}{month:02}/oisst-avhrr-v02r01.{year}{month:02}{day:02}.nc")
+            ds = xr.open_mfdataset(file_urls)
+            
         elif res == 'monthly':
-            file_urls = '/nfs/kryo/work/datasets/grd/ocean/2d/obs/sst/noaa_oisst_20cm/noaa.oisst.v2.highres/sst.mon.mean.nc' #'https://psl.noaa.gov/thredds/dodsC/Datasets/noaa.oisst.v2.highres/sst.mon.mean.nc'
+            file_urls = '/nfs/kryo/work/datasets/grd/ocean/2d/obs/sst/noaa_oisst_20cm/noaa.oisst.v2.highres/sst.mon.mean.nc'
             ds = xr.open_dataset(file_urls, engine='netcdf4')
-            ds = ds.sel(time=ds.time.dt.year.isin(range(start_year,end_year+1)))
+            ds = ds.sel(time=ds.time.dt.year.isin(range(start_year, end_year+1)))
+
         da = ds.sst
         return ds, da
+
 
     @staticmethod
     def get_ssh_data(res='monthly',start_year=2011,end_year=2021):
@@ -209,7 +212,7 @@ class ObsGetter():
         """
         author: Eike Koehn
         date: Jun 7, 2024
-        description: accessing DIC data 
+        description: accessing DIC data from /nfs/kryo/work/datasets/grd/ocean/3d/obs/dic/broullon_2020/readme.txt (monthly/annual climatology of DIC from Brullon et al. 2020, website: https://digital.csic.es/handle/10261/200537 )
         """
         print(f'Getting {res} DIC data.')
         if res == 'daily':
@@ -246,7 +249,9 @@ class ObsGetter():
         """
         author: Eike Koehn
         date: Jun 7, 2024
-        description: accessing Alk data 
+        description: accessing Alk data (/nfs/kryo/work/datasets/grd/ocean/3d/obs/alk/broullon_2019/readme.txt) -> - this folder contains the monthly/annual climatology of Total Alkalinity from Brullon et al. 2019
+            (Title: A global monthly climatology of total alkalinity: a neural network approach (2019))
+            - website: https://digital.csic.es/handle/10261/184460
         """
         print(f'Getting {res} Alk data.')
         if res == 'daily':
@@ -283,7 +288,9 @@ class ObsGetter():
         """
         author: Eike Koehn
         date: Jun 7, 2024
-        description: accessing surface pCO2 data 
+        description: accessing surface pCO2 data https://upwiki.ethz.ch/datasets/gridded/ocean/2d/observation/pco2/ * [[ datasets/gridded/ocean/2d/observation/pco2/oceansoda_gregor//readme.txt | /net/kryo/work/datasets/gridded/ocean/2d/observation/pco2/oceansoda_gregor ]]
+
+
         """
         print(f'Getting {res} surface pCO2 data.')
         if res == 'daily':
@@ -374,7 +381,7 @@ class ObsGetter():
         if res == 'daily':
             raise Exception('Daily observational data not available.')
         elif res == 'monthly':
-            data_path = '/nfs/kryo/work/datasets/grd/ocean/3d/obs/en4/EN.4.2.2/'
+            data_path = '/nfs/kryo/work/datasets/grd/ocean/3d/obs/en4/EN.4.2.2/' #No such file or directory????
             file_urls = []
             years = range(start_year,end_year+1)
             for year in years:
@@ -839,5 +846,28 @@ class ObsGetter():
 # ds_chl, da_chl = ObsGetter.get_chl_data(res='monthly')
 # ds_npp, da_npp = ObsGetter.get_npp_data(res='monthly_clim')
 # ds_cloud, da_cloud = ObsGetter.get_cloud_data(res='daily')
+
+# %%
+
+import xarray as xr
+
+# Open your NetCDF file
+ds = xr.open_dataset('/nfs/kryo/work/datasets/grd/ocean/2d/obs/pco2/oceansoda_gregor/OceanSODA_ETHZ-v2023.OCADS.01_1982-2022.nc')
+
+# Extract the `ph_total` and `ph_free` variables
+ph_total_data = ds['ph_total']
+ph_free_data = ds['ph_free']
+
+# Display basic information about the data
+print(ph_total_data)
+print(ph_free_data)
+
+# Print a small portion of the `ph_total` values
+print(ph_total_data.values)  
+
+# Alternatively, select a small slice for inspection
+print(ph_total_data.isel(time=0, lat=slice(0, 5), lon=slice(0, 5)).values)
+
+
 
 # %%

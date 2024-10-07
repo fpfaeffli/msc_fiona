@@ -10,8 +10,8 @@ import sys
 scriptdir = '/home/koehne/Documents/publications/paper_future_simulations/scripts_clean/climatologies_and_thresholds/'#observations/'
 scriptname = 'calc_hobday2016_clim_thresh_OISST.py'
 # enable the visibility of the modules for the import functions
-#sys.path.append('/home/koehne/Documents/publications/paper_future_simulations/scripts_clean/modules/')
-#sys.path.append('/home/koehne/Documents/publications/paper_future_simulations/scripts_clean/climatologies_and_thresholds/')
+#sys.path.append('/home/fpfaeffli/msc_fiona/scripts/modules/')
+sys.path.append('/home/fpfaeffli/msc_fiona/scripts/climatologies_and_thresholds/')
 
 #%% load packages
 import numpy as np
