@@ -37,7 +37,7 @@ class ThresholdParameters:
     @classmethod
     def standard_instance(cls):
         return cls(
-            percentile=90.,
+            percentile=99.,
             baseline_start_year=2011,
             baseline_end_year=2021,
             baseline_type='fixed',

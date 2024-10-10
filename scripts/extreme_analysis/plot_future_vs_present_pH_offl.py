@@ -91,6 +91,7 @@ for config in configs:
         #   cloud_ds[config][scenario]['lon'] = cloud_ds[config][scenario]['lon']+360.
 
 #%% load the data at the respective location
+## takes about 30min
 
 variables = dict()
 for config in configs:
@@ -100,11 +101,11 @@ for config in configs:
           #
           # oceanic variables
           variables[config][scenario] = dict()
-          print('sst...')
-          variables[config][scenario]['sst'] = ocean_ds[config][scenario].temp.isel(depth=0).load() #.isel(depth=0,eta_rho=ocean_li[0],xi_rho=ocean_li[1]
+          print('pH_offl')
+          variables[config][scenario]['pH_offl'] = ocean_ds[config][scenario].temp.isel(depth=0).load() #.isel(depth=0,eta_rho=ocean_li[0],xi_rho=ocean_li[1]
 
 #%%
-varias = ['sst']
+varias = ['pH_offl']
 
 #%% GET THE CLIMATOLOGIES FOR EACH VARIABLE
 print('Get the climatology')
@@ -123,7 +124,7 @@ for config in configs:
 
 #%% GET THE THRESHOLD FOR EACH VARIABLE
 print('Get the present day threshold')
-varia = 'sst'
+varia = 'pH_offl'
 thresholds = dict()
 for config in configs:
      thresholds[config] = dict()
@@ -164,17 +165,17 @@ model_area = ModelGetter.get_model_area()
 
 configo = configs[0]
 
-present = variables[configo]['present']['sst'] - thresholds[configo]['present']['sst']
+present = variables[configo]['present']['pH_offl'] - thresholds[configo]['present']['pH_offl']
 
 for scenario in ['ssp245','ssp585']:
     for threshold_type in ['present','present_plus_meandelta']:#,]: #= 'present_plus_climdelta'
 
         #if threshold_type == 'present_plus_climdelta':
-        #    future = variables[configo]['ssp585']['sst'] - thresholds_mult[configo]['ssp585']['present_plus_climdelta']#- (thresholds[configo]['present']['sst'] + clims[configo]['ssp585']['sst'] - clims[configo]['present']['sst'])
+        #    future = variables[configo]['ssp585']['pH_offl'] - thresholds_mult[configo]['ssp585']['present_plus_climdelta']#- (thresholds[configo]['present']['pH_offl'] + clims[configo]['ssp585']['pH_offl'] - clims[configo]['present']['pH_offl'])
         if threshold_type == 'present_plus_meandelta':
-            future = variables[configo][scenario]['sst'] - thresholds_mult[configo][scenario]['present_plus_meandelta']#(thresholds[configo]['present']['sst'] + variables[configo]['ssp585']['sst'].mean(dim='time') - variables[configo]['present']['sst'].mean(dim='time'))
+            future = variables[configo][scenario]['pH_offl'] - thresholds_mult[configo][scenario]['present_plus_meandelta']#(thresholds[configo]['present']['pH_offl'] + variables[configo]['ssp585']['pH_offl'].mean(dim='time') - variables[configo]['present']['pH_offl'].mean(dim='time'))
         elif threshold_type == 'present':
-            future = variables[configo][scenario]['sst'] - thresholds_mult[configo][scenario]['present']#- (thresholds[configo]['present']['sst'])
+            future = variables[configo][scenario]['pH_offl'] - thresholds_mult[configo][scenario]['present']#- (thresholds[configo]['present']['pH_offl'])
 
         #%
         for region_cho in ['coastal_all_lats']:#,'offshore_all_lats','coastal_northern','coastal_central','coastal_southern']:
@@ -232,13 +233,13 @@ for scenario in ['ssp245','ssp585']:
                 ax[1,0].text(0.98,0.98,'1:1',transform=ax[1,0].transAxes,color='C1',ha='right',va='top',bbox={'boxstyle':'round','fc':'w','alpha':0.75})
             ax[1,0].set_ylim([-11,9])
             ax[1,0].set_xlim([xmin,xmax])
-            ax[1,0].set_ylabel('Present-day SST anomalies rel. to thresh. in °C')
+            ax[1,0].set_ylabel('Present-day pH_offl anomalies rel. to thresh. in °C')
             if threshold_type == 'present_plus_meandelta':
-                ax[1,0].set_xlabel(f'{scenario.upper()} SST anomalies rel. to threshold in °C\n(moving baseline, i.e., mean warming adjusted present-day threshold)')
+                ax[1,0].set_xlabel(f'{scenario.upper()} pH_offl anomalies rel. to threshold in °C\n(moving baseline, i.e., mean warming adjusted present-day threshold)')
             elif threshold_type == 'present_plus_climdelta':
-                ax[1,0].set_xlabel(f'{scenario.upper()} SST anomalies rel. to threshold in °C\n(clim. warming adjusted present-day threshold)')         
+                ax[1,0].set_xlabel(f'{scenario.upper()} pH_offl anomalies rel. to threshold in °C\n(clim. warming adjusted present-day threshold)')         
             elif threshold_type == 'present':
-                ax[1,0].set_xlabel(f'{scenario.upper()} SST anomalies rel. to threshold in °C\n(fixed baseline, i.e., present-day threshold)')    
+                ax[1,0].set_xlabel(f'{scenario.upper()} pH_offl anomalies rel. to threshold in °C\n(fixed baseline, i.e., present-day threshold)')    
             #ax[0,0].set_title(region_cho,loc='left')
 
             ax[0,0].plot(yedges[:-1],np.nansum(hist2d,axis=0)/totnum,color='k',linewidth=0.5)
@@ -291,17 +292,17 @@ for scenario in ['ssp245','ssp585']:
 #%%  PLOT THE TIMESERIES OF THE AREA AFFECTED BY THE DIFFERENT TYPES OF EXTREME COMBINATIONS
 ##### 2 ###### # TODO: works
 
-present = variables['romsoc_fully_coupled']['present']['sst'] - thresholds['romsoc_fully_coupled']['present']['sst']
+present = variables['romsoc_fully_coupled']['present']['pH_offl'] - thresholds['romsoc_fully_coupled']['present']['pH_offl']
 
 for scenario in ['ssp245','ssp585']:
     for threshold_type in ['present','present_plus_meandelta']: #= 'present_plus_climdelta'
 
         #if threshold_type == 'present_plus_climdelta':
-        #    future = variables['romsoc_fully_coupled']['ssp585']['sst'] - thresholds_mult['romsoc_fully_coupled']['ssp585']['present_plus_climdelta']#- (thresholds['romsoc_fully_coupled']['present']['sst'] + clims['romsoc_fully_coupled']['ssp585']['sst'] - clims['romsoc_fully_coupled']['present']['sst'])
+        #    future = variables['romsoc_fully_coupled']['ssp585']['pH_offl'] - thresholds_mult['romsoc_fully_coupled']['ssp585']['present_plus_climdelta']#- (thresholds['romsoc_fully_coupled']['present']['pH_offl'] + clims['romsoc_fully_coupled']['ssp585']['pH_offl'] - clims['romsoc_fully_coupled']['present']['pH_offl'])
         if threshold_type == 'present_plus_meandelta':
-            future = variables['romsoc_fully_coupled'][scenario]['sst'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present_plus_meandelta']#(thresholds['romsoc_fully_coupled']['present']['sst'] + variables['romsoc_fully_coupled']['ssp585']['sst'].mean(dim='time') - variables['romsoc_fully_coupled']['present']['sst'].mean(dim='time'))
+            future = variables['romsoc_fully_coupled'][scenario]['pH_offl'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present_plus_meandelta']#(thresholds['romsoc_fully_coupled']['present']['pH_offl'] + variables['romsoc_fully_coupled']['ssp585']['pH_offl'].mean(dim='time') - variables['romsoc_fully_coupled']['present']['pH_offl'].mean(dim='time'))
         elif threshold_type == 'present':
-            future = variables['romsoc_fully_coupled'][scenario]['sst'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present']#- (thresholds['romsoc_fully_coupled']['present']['sst'])
+            future = variables['romsoc_fully_coupled'][scenario]['pH_offl'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present']#- (thresholds['romsoc_fully_coupled']['present']['pH_offl'])
 
         for region_cho in ['coastal_all_lats']:#,'offshore_all_lats','coastal_northern','coastal_central','coastal_southern']:
 
@@ -375,21 +376,22 @@ for scenario in ['ssp245','ssp585']:
             plt.subplots_adjust(wspace=0.15)
             savedir = '/nfs/sea/work/fpfaeffli/plots/future_vs_present/anomalies_rel_tresh/timeseries/'
             filename = f'future_vs_present_anomalies_rel_to_thresh_{threshold_type}_for_region_{region_cho}_timeseries_{scenario}.png'
-            plt.savefig(savedir+filename,dpi=200,transparent=True)
+            #plt.savefig(savedir+filename,dpi=200,transparent=True)
             plt.show()
 
-#%% ####### 3 ######## 
+#%%
+######## 3 ######## 
 
-present = variables['romsoc_fully_coupled']['present']['sst'] - thresholds['romsoc_fully_coupled']['present']['sst']
+present = variables['romsoc_fully_coupled']['present']['pH_offl'] - thresholds['romsoc_fully_coupled']['present']['pH_offl']
 
 for threshold_type in ['present','present_plus_climdelta','present_plus_meandelta']: #= 'present_plus_climdelta'
     scenario = 'ssp585'
     #if threshold_type == 'present_plus_climdelta':
-    #    future = variables['romsoc_fully_coupled']['ssp585']['sst'] - thresholds_mult['romsoc_fully_coupled']['ssp585']['present_plus_climdelta']#- (thresholds['romsoc_fully_coupled']['present']['sst'] + clims['romsoc_fully_coupled']['ssp585']['sst'] - clims['romsoc_fully_coupled']['present']['sst'])
+    #    future = variables['romsoc_fully_coupled']['ssp585']['pH_offl'] - thresholds_mult['romsoc_fully_coupled']['ssp585']['present_plus_climdelta']#- (thresholds['romsoc_fully_coupled']['present']['pH_offl'] + clims['romsoc_fully_coupled']['ssp585']['pH_offl'] - clims['romsoc_fully_coupled']['present']['pH_offl'])
     if threshold_type == 'present_plus_meandelta':
-        future = variables['romsoc_fully_coupled'][scenario]['sst'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present_plus_meandelta']#(thresholds['romsoc_fully_coupled']['present']['sst'] + variables['romsoc_fully_coupled']['ssp585']['sst'].mean(dim='time') - variables['romsoc_fully_coupled']['present']['sst'].mean(dim='time'))
+        future = variables['romsoc_fully_coupled'][scenario]['pH_offl'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present_plus_meandelta']#(thresholds['romsoc_fully_coupled']['present']['pH_offl'] + variables['romsoc_fully_coupled']['ssp585']['pH_offl'].mean(dim='time') - variables['romsoc_fully_coupled']['present']['pH_offl'].mean(dim='time'))
     elif threshold_type == 'present':
-        future = variables['romsoc_fully_coupled'][scenario]['sst'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present']#- (thresholds['romsoc_fully_coupled']['present']['sst'])
+        future = variables['romsoc_fully_coupled'][scenario]['pH_offl'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present']#- (thresholds['romsoc_fully_coupled']['present']['pH_offl'])
     non_extremes_mask = (future<=0)*(present<=0)
     new_extremes_mask = (future>0)*(present<=0)
     disappearing_extremes_mask = (future<=0)*(present>0)
@@ -439,13 +441,13 @@ for threshold_type in ['present','present_plus_climdelta','present_plus_meandelt
 
     savedir = '//nfs/sea/work/fpfaeffli/plots/future_vs_present/anomalies_rel_tresh/number_days/'
     filename = f'future_vs_present_anomalies_rel_to_thresh_{threshold_type}_for_region_{region_cho}_map_number_of_days.png'
-    plt.savefig(savedir+filename,dpi=200,transparent=True)
+    #plt.savefig(savedir+filename,dpi=200,transparent=True)
     plt.show()
     
 
 # %% ###### 4 #######
 
-present = variables['romsoc_fully_coupled']['present']['sst'] - thresholds['romsoc_fully_coupled']['present']['sst']
+present = variables['romsoc_fully_coupled']['present']['pH_offl'] - thresholds['romsoc_fully_coupled']['present']['pH_offl']
 
 for region_cho in ['all_dists_all_lats']:
     for threshold_type in ['present','present_plus_meandelta']:#,'present_plus_climdelta']: #= 'present_plus_climdelta'
@@ -459,11 +461,11 @@ for region_cho in ['all_dists_all_lats']:
         for scenario in ['ssp245','ssp585']:
 
             #if threshold_type == 'present_plus_climdelta':
-            #    future = variables['romsoc_fully_coupled']['ssp585']['sst'] - thresholds_mult['romsoc_fully_coupled']['ssp585']['present_plus_climdelta']#- (thresholds['romsoc_fully_coupled']['present']['sst'] + clims['romsoc_fully_coupled']['ssp585']['sst'] - clims['romsoc_fully_coupled']['present']['sst'])
+            #    future = variables['romsoc_fully_coupled']['ssp585']['pH_offl'] - thresholds_mult['romsoc_fully_coupled']['ssp585']['present_plus_climdelta']#- (thresholds['romsoc_fully_coupled']['present']['pH_offl'] + clims['romsoc_fully_coupled']['ssp585']['pH_offl'] - clims['romsoc_fully_coupled']['present']['pH_offl'])
             if threshold_type == 'present_plus_meandelta':
-                future = variables['romsoc_fully_coupled'][scenario]['sst'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present_plus_meandelta']#(thresholds['romsoc_fully_coupled']['present']['sst'] + variables['romsoc_fully_coupled']['ssp585']['sst'].mean(dim='time') - variables['romsoc_fully_coupled']['present']['sst'].mean(dim='time'))
+                future = variables['romsoc_fully_coupled'][scenario]['pH_offl'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present_plus_meandelta']#(thresholds['romsoc_fully_coupled']['present']['pH_offl'] + variables['romsoc_fully_coupled']['ssp585']['pH_offl'].mean(dim='time') - variables['romsoc_fully_coupled']['present']['pH_offl'].mean(dim='time'))
             elif threshold_type == 'present':
-                future = variables['romsoc_fully_coupled'][scenario]['sst'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present']#- (thresholds['romsoc_fully_coupled']['present']['sst'])
+                future = variables['romsoc_fully_coupled'][scenario]['pH_offl'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present']#- (thresholds['romsoc_fully_coupled']['present']['pH_offl'])
 
             non_extremes_mask = (future<=0)*(present<=0)                          *model_regions['roms_only'][region_cho]['mask']
             new_extremes_mask = (future>0)*(present<=0)                           *model_regions['roms_only'][region_cho]['mask']
@@ -571,7 +573,7 @@ for region_cho in ['all_dists_all_lats']:
 # %% SAME BUT ONLY FOR NEW AND INTENSIFIED EXTREMES
 ###### 5 ########
 
-present = variables['romsoc_fully_coupled']['present']['sst'] - thresholds['romsoc_fully_coupled']['present']['sst']
+present = variables['romsoc_fully_coupled']['present']['pH_offl'] - thresholds['romsoc_fully_coupled']['present']['pH_offl']
 
 for region_cho in ['all_dists_all_lats']:
     for threshold_type in ['present','present_plus_meandelta']:#,'present_plus_climdelta']: #= 'present_plus_climdelta'
@@ -586,11 +588,11 @@ for region_cho in ['all_dists_all_lats']:
         for scenario in ['ssp245','ssp585']:
 
             #if threshold_type == 'present_plus_climdelta':
-            #    future = variables['romsoc_fully_coupled']['ssp585']['sst'] - thresholds_mult['romsoc_fully_coupled']['ssp585']['present_plus_climdelta']#- (thresholds['romsoc_fully_coupled']['present']['sst'] + clims['romsoc_fully_coupled']['ssp585']['sst'] - clims['romsoc_fully_coupled']['present']['sst'])
+            #    future = variables['romsoc_fully_coupled']['ssp585']['pH_offl'] - thresholds_mult['romsoc_fully_coupled']['ssp585']['present_plus_climdelta']#- (thresholds['romsoc_fully_coupled']['present']['pH_offl'] + clims['romsoc_fully_coupled']['ssp585']['pH_offl'] - clims['romsoc_fully_coupled']['present']['pH_offl'])
             if threshold_type == 'present_plus_meandelta':
-                future = variables['romsoc_fully_coupled'][scenario]['sst'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present_plus_meandelta']#(thresholds['romsoc_fully_coupled']['present']['sst'] + variables['romsoc_fully_coupled']['ssp585']['sst'].mean(dim='time') - variables['romsoc_fully_coupled']['present']['sst'].mean(dim='time'))
+                future = variables['romsoc_fully_coupled'][scenario]['pH_offl'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present_plus_meandelta']#(thresholds['romsoc_fully_coupled']['present']['pH_offl'] + variables['romsoc_fully_coupled']['ssp585']['pH_offl'].mean(dim='time') - variables['romsoc_fully_coupled']['present']['pH_offl'].mean(dim='time'))
             elif threshold_type == 'present':
-                future = variables['romsoc_fully_coupled'][scenario]['sst'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present']#- (thresholds['romsoc_fully_coupled']['present']['sst'])
+                future = variables['romsoc_fully_coupled'][scenario]['pH_offl'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present']#- (thresholds['romsoc_fully_coupled']['present']['pH_offl'])
 
             #non_extremes_mask = (future<=0)*(present<=0)                          *model_regions['roms_only'][region_cho]['mask']
             new_extremes_mask = (future>0)*(present<=0)                           *model_regions['roms_only'][region_cho]['mask']
@@ -709,12 +711,12 @@ for region_cho in ['all_dists_all_lats']:
 
 # %% Same but as a violinplot
 
-present_thresh = thresholds['romsoc_fully_coupled']['present']['sst']
-present = variables['romsoc_fully_coupled']['present']['sst'] - present_thresh
+present_thresh = thresholds['romsoc_fully_coupled']['present']['pH_offl']
+present = variables['romsoc_fully_coupled']['present']['pH_offl'] - present_thresh
 present_extreme = (present>0)
 present_nonex = (present<=0)
-mean_warming_ssp245 = variables['romsoc_fully_coupled']['ssp245']['sst'].mean(dim='time') - variables['romsoc_fully_coupled']['present']['sst'].mean(dim='time')
-mean_warming_ssp585 = variables['romsoc_fully_coupled']['ssp585']['sst'].mean(dim='time') - variables['romsoc_fully_coupled']['present']['sst'].mean(dim='time')
+mean_warming_ssp245 = variables['romsoc_fully_coupled']['ssp245']['pH_offl'].mean(dim='time') - variables['romsoc_fully_coupled']['present']['pH_offl'].mean(dim='time')
+mean_warming_ssp585 = variables['romsoc_fully_coupled']['ssp585']['pH_offl'].mean(dim='time') - variables['romsoc_fully_coupled']['present']['pH_offl'].mean(dim='time')
 
 #%%
 flat_data_arrays = dict()
@@ -726,14 +728,14 @@ for region_cho in ['coastal_all_lats','offshore_all_lats']:#'coastal_northern','
             print(region_cho,threshold_type,scenario)
             flat_data_arrays[region_cho][threshold_type][scenario] = dict()        
             # if threshold_type == 'present_plus_climdelta':
-            #     future = variables['romsoc_fully_coupled'][scenario]['sst'] - (thresholds['romsoc_fully_coupled']['present']['sst'] + clims['romsoc_fully_coupled'][scenario]['sst'] - clims['romsoc_fully_coupled']['present']['sst'])
+            #     future = variables['romsoc_fully_coupled'][scenario]['pH_offl'] - (thresholds['romsoc_fully_coupled']['present']['pH_offl'] + clims['romsoc_fully_coupled'][scenario]['pH_offl'] - clims['romsoc_fully_coupled']['present']['pH_offl'])
             if threshold_type == 'present_plus_meandelta':
                 if scenario == 'ssp245':
-                    future = variables['romsoc_fully_coupled'][scenario]['sst'] - (present_thresh + mean_warming_ssp245)
+                    future = variables['romsoc_fully_coupled'][scenario]['pH_offl'] - (present_thresh + mean_warming_ssp245)
                 elif scenario == 'ssp585':
-                    future = variables['romsoc_fully_coupled'][scenario]['sst'] - (present_thresh + mean_warming_ssp585)
+                    future = variables['romsoc_fully_coupled'][scenario]['pH_offl'] - (present_thresh + mean_warming_ssp585)
             elif threshold_type == 'present':
-                future = variables['romsoc_fully_coupled'][scenario]['sst'] - present_thresh
+                future = variables['romsoc_fully_coupled'][scenario]['pH_offl'] - present_thresh
 
             future_extreme = (future>0)
             future_nonex = (future<=0)
@@ -849,19 +851,19 @@ plt.show()
 # %%
 
 print('Get variables present and futures')
-present       = variables[config]['present']['sst']
-future_ssp245 = variables[config]['ssp245']['sst']
-future_ssp585 = variables[config]['ssp585']['sst']
+present       = variables[config]['present']['pH_offl']
+future_ssp245 = variables[config]['ssp245']['pH_offl']
+future_ssp585 = variables[config]['ssp585']['pH_offl']
 
 baseline = 'moving'
 if baseline == 'moving':
-    present_ex =       present >      thresholds[config]['present']['sst']
+    present_ex =       present >      thresholds[config]['present']['pH_offl']
     ssp245_ex  = future_ssp245 > thresholds_mult[config]['ssp245']['present_plus_meandelta']
     ssp585_ex  = future_ssp585 > thresholds_mult[config]['ssp585']['present_plus_meandelta']
 elif baseline == 'fixed':
-    present_ex = (      present > thresholds[config]['present']['sst'])
-    ssp245_ex  = (future_ssp245 > thresholds[config]['present']['sst'])
-    ssp585_ex  = (future_ssp585 > thresholds[config]['present']['sst'])
+    present_ex = (      present > thresholds[config]['present']['pH_offl'])
+    ssp245_ex  = (future_ssp245 > thresholds[config]['present']['pH_offl'])
+    ssp585_ex  = (future_ssp585 > thresholds[config]['present']['pH_offl'])
 
 print('Masking')
 regionalized_data = dict()
@@ -952,7 +954,7 @@ for rdx,region_cho in enumerate(region_choices):
             linelab = ax[rdx].vlines(inds, quartile1, quartile3, color=colo, linestyle='-', lw=5)
         ax[rdx].axvline(100,color='C0',alpha=0.2)
         ax[rdx].set_title(labs[rdx]+region_cho.split('_')[-1]+' CalCS',loc='left')
-        ax[rdx].set_ylabel('SST (°C) during extremes')
+        ax[rdx].set_ylabel('pH_offl (°C) during extremes')
         ax[rdx].set_xlim([0,200])
         ax[rdx].grid(linestyle='--',alpha=0.25)
         ax[rdx].spines['top'].set_visible(False)
@@ -1035,7 +1037,7 @@ for rdx,region_cho in enumerate(region_choices):
 
 labels.append((mpatches.Patch(color=colo), 'IQR'))
 ax[0].legend(*zip(*labels),ncol=2,columnspacing=1,handletextpad=0.2,handlelength=1,loc='upper left')
-ax[0].set_ylabel('SST (°C) during extremes')
+ax[0].set_ylabel('pH_offl (°C) during extremes')
 plt.tight_layout()
 savedir = '/nfs/sea/work/fpfaeffli/plots/future_vs_present/violinplots'
 filename = f'future_vs_present_violin_abs_temp_for_all_regions_{config}_{baseline}_baseline_horizontal.png'
