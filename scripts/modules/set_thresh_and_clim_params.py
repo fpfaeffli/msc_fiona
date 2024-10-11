@@ -1,5 +1,6 @@
 """
 author: Eike E. Köhn
+adaptations: Fiona Pfäffli
 date: June 21, 2024
 description: this file serves to create an object that carries all threshold properties that need to be set and that are applicable for observations and models
 """
@@ -37,7 +38,20 @@ class ThresholdParameters:
     @classmethod
     def standard_instance(cls):
         return cls(
-            percentile=99.,
+            percentile=90.,
+            baseline_start_year=2011,
+            baseline_end_year=2021,
+            baseline_type='fixed',
+            daysinyear=365,
+            aggregation_window_size=11,
+            smoothing_window_size=31,
+            rootdir='/nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/extreme_analysis/thresholds_and_climatology/',
+        )
+    
+    @classmethod
+    def fiona_instance(cls):
+        return cls(
+            percentile=95.,
             baseline_start_year=2011,
             baseline_end_year=2021,
             baseline_type='fixed',
@@ -54,12 +68,15 @@ class ThresholdParameters:
         raise ValueError(f'Parameter with name "{name}" not found.')
 
 
-#%%
 #%% Example usage to create the default instance
 default_params = ThresholdParameters.standard_instance()
 print(default_params)
 
+fiona_params = ThresholdParameters.fiona_instance()
+print(fiona_params)
+
 #%%
 # Accessing a parameter by name
-print(default_params.get_param_by_name('Percentile'))
+print("Standard:", default_params.get_param_by_name('Percentile'))
+print("Fiona:", fiona_params.get_param_by_name('Percentile'))
 # %%

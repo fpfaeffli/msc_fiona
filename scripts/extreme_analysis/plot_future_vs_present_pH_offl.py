@@ -40,7 +40,7 @@ import get_obs_datasets
 reload(get_obs_datasets)
 from get_obs_datasets import ObsGetter as ObsGetter
 
-sys.path.append('/home/koehne/Documents/publications/paper_future_simulations/scripts_clean/climatologies_and_thresholds')
+sys.path.append('/home/fpfaeffli/msc_fiona/scripts/climatologies_and_thresholds/')
 from set_thresh_and_clim_params import ThresholdParameters
 params = ThresholdParameters.standard_instance()
 

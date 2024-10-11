@@ -1,17 +1,18 @@
 """
-Content: calculate the threshold for SST values according to Hobday et al. 2016 based on a 30 year reference period
+Content: calculate the threshold for H+ ions according to Hobday et al. 2016 based on a 30 year reference period
 Author: Eike E Koehn
+Changes: Fiona Pfäffli, Oct 11, 2024
 Date: Apr 26, 2022
 """
 
 #%% DEFINE THE SCRIPTNAME
 import os
 import sys
-scriptdir = '/home/koehne/Documents/publications/paper_future_simulations/scripts_clean/climatologies_and_thresholds/'#observations/'
-scriptname = 'calc_hobday2016_clim_thresh_OISST.py'
+scriptdir = '/nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/'
+scriptname = 'calc_hobday2016_clim_thresh_Hplus.py'
 # enable the visibility of the modules for the import functions
-#sys.path.append('/home/fpfaeffli/msc_fiona/scripts/modules/')
 sys.path.append('/home/fpfaeffli/msc_fiona/scripts/climatologies_and_thresholds/')
+sys.path.append('/home/fpfaeffli/msc_fiona/scripts/modules/')
 
 #%% load packages
 import numpy as np
@@ -20,7 +21,9 @@ import matplotlib.pyplot as plt
 import scipy.ndimage
 from datetime import date
 import glob
-from get_obs_datasets import ObsGetter as ObsGetter
+
+#import modules
+from get_model_datasets import ModelGetter as ModelGetter
 from set_thresh_and_clim_params import ThresholdParameters
 from func_for_clim_thresh import ThreshClimFuncs
 
@@ -30,28 +33,34 @@ reload(func_for_clim_thresh)
 from func_for_clim_thresh import ThreshClimFuncs as ThreshClimFuncs
 
 #%% set the variable and threshold parameters
-var = 'temp'
-dep = 0 # m, i.e. surface
-params = ThresholdParameters.standard_instance()
-obs_temp_resolution = 'daily' # 'monthly'
+var = 'temp'  # Change to your desired variable
 
-#%% Get the observational data
-print('Get the data...')
-if var == 'temp' and dep == 0:
-    obs_ds, obs_da = ObsGetter.get_sst_data(res=obs_temp_resolution)
-print(obs_da)
+depth_level = 0  # m, i.e., surface
+config =  'roms_only' #'romsoc_fully_coupled'
+scenario = 'present' # 'ssp245', 'ssp585'
+simulation_type = 'spinup' # 'hindcast'
+ensemble_run = '000'  
+temp_resolution = 'daily'# 'monthly'
+vert_struct = 'avg'# 'zavg' 
+vtype = 'oceanic' #'atmospheric'
 
-#%% Load the observational data
-print('Load the data...')
-obs_da = obs_da.compute()
+
+#%% Get the model data
+print('Getting model data...')
+model_ds = ModelGetter.get_model_dataset(config, scenario, simulation_type, ensemble_run, temp_resolution, vert_struct, parent_model='mpi-esm1-2-hr', vtype=vtype)
+model_da = model_ds[var]
+
+#%% Load the model data into memory
+print('Loading the model data')
+model_da = model_da.compute()
 
 #%% Do the climatology calculations
 print('Calc the climatology')
-climatology = ThreshClimFuncs.calc_clim(params,obs_da)
+climatology = ThreshClimFuncs.calc_clim(params,model_da)
 
 #%% Do the threshold calculations
 print('Calc the threshold')
-threshold = ThreshClimFuncs.calc_thresh(params,obs_da)
+threshold = ThreshClimFuncs.calc_thresh(params,model_da)
 
 #%% Do the intensity normalizer calculations
 print('Calc the intensity normalizer')
@@ -65,19 +74,16 @@ intensity_normalizer_smoothed = ThreshClimFuncs.calc_intensity_normalizer(thresh
 
 #%% Put the smoothed climatology, thershold and intensity normalizer into a dataset and add some attributes
 print('Put smoothed fields into dataset')
-out_ds = ThreshClimFuncs.put_fields_into_dataset(params,climatology_smoothed,threshold_smoothed,intensity_normalizer_smoothed,obs_ds)
-out_ds.attrs['author'] = 'E. E. Koehn'
+out_ds = ThreshClimFuncs.put_fields_into_dataset(params, climatology_smoothed, threshold_smoothed, intensity_normalizer_smoothed, model_ds)
+out_ds.attrs['author'] = 'Fiona Pfäffli'
 out_ds.attrs['date'] = str(date.today())
 out_ds.attrs['scriptdir'] = scriptdir
 out_ds.attrs['scriptname'] = scriptname
 
 #%% Save the arrays
-print("Save the arrays")
-print("Saving")
-# set the path and filename
-savepath = params.rootdir + 'oisst/'
+print("Saving the arrays...")
+savepath = params.rootdir + 'model_output/'
 save_filename = f'hobday2016_threshold_and_climatology_{var}_{params.percentile}perc_{params.baseline_start_year}-{params.baseline_end_year}baseperiod_{params.baseline_type}baseline_{params.aggregation_window_size}aggregation_{params.smoothing_window_size}smoothing.nc'
-# save
-out_ds.to_netcdf(savepath+save_filename)
+out_ds.to_netcdf(savepath + save_filename)
 
 #%%
