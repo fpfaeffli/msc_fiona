@@ -159,18 +159,18 @@ for config in configs:
 #####################
 
 # %% 
-var = 'omega_arag_offl'
+
 print('Generate plot: Map for annual mean')
 plotted_values = Plotter.plot_full_map_annual_mean(var,dep,obs_da,model_da,obs_regions_dict,model_regions_dict,regional_data=[regional_data_obs,regional_data_model],regional_data_plottype='lines',savefig=True)
 
 
 # %% 
-var = 'omega_arag_offl'
+
 print('Generate plot: Averaged timeseries in regions')
 plotted_values = Plotter.plot_area_averaged_timeseries(var,dep,obs_da,obs_area,model_da,model_area,obs_regions_dict,model_regions_dict,plot_resolution,savefig=True)
 
 # %% 
-var = 'omega_arag_offl'
+
 print('Generate plot: Averaged timeseries climatology in regions')
 plotted_values = Plotter.plot_area_averaged_climatology_timeseries(var,dep,obs_da,obs_area,model_da,model_area,obs_regions_dict,model_regions_dict,plot_resolution,savefig=True)
 

@@ -45,7 +45,7 @@ class ThresholdParameters:
             daysinyear=365,
             aggregation_window_size=11,
             smoothing_window_size=31,
-            rootdir='/nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/extreme_analysis/thresholds_and_climatology/',
+            rootdir='/nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/',
         )
     
     @classmethod
@@ -58,7 +58,7 @@ class ThresholdParameters:
             daysinyear=365,
             aggregation_window_size=11,
             smoothing_window_size=31,
-            rootdir='/nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/extreme_analysis/thresholds_and_climatology/',
+            rootdir='/nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/',
         )
 
     def get_param_by_name(self, name):

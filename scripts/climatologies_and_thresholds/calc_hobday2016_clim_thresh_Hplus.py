@@ -33,17 +33,18 @@ reload(func_for_clim_thresh)
 from func_for_clim_thresh import ThreshClimFuncs as ThreshClimFuncs
 
 #%% set the variable and threshold parameters
-var = 'temp'  # Change to your desired variable
+var = 'pH_offl'  # Change to your desired variable
 
 depth_level = 0  # m, i.e., surface
 config =  'roms_only' #'romsoc_fully_coupled'
 scenario = 'present' # 'ssp245', 'ssp585'
-simulation_type = 'spinup' # 'hindcast'
+simulation_type =   'hindcast' #'spinup'
 ensemble_run = '000'  
 temp_resolution = 'daily'# 'monthly'
-vert_struct = 'avg'# 'zavg' 
+vert_struct = 'zavg' # 'avg'  #(for pH zavg because offline carbonate chemistry only on z-levels for model output)
 vtype = 'oceanic' #'atmospheric'
 
+params = ThresholdParameters.standard_instance() 
 
 #%% Get the model data
 print('Getting model data...')
