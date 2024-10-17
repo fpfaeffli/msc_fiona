@@ -110,7 +110,7 @@ elif var == 'zeta' and dep == 0:
     obs_da = obs_da
 elif var == 'mld_holte':
     obs_ds, obs_da = ObsGetter.get_mld_data(res=obs_temp_resolution+'_clim')
-    obs_da = obs_da*-1    
+    obs_da = obs_da*-1
 # ... add further datasets to be analyzed
 
 # get the area and distance to coast fields

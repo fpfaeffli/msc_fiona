@@ -14,6 +14,7 @@ scriptname = 'calc_hobday2016_clim_thresh_Hplus.py'
 sys.path.append('/home/fpfaeffli/msc_fiona/scripts/climatologies_and_thresholds/')
 sys.path.append('/home/fpfaeffli/msc_fiona/scripts/modules/')
 
+
 #%% load packages
 import numpy as np
 import xarray as xr
@@ -44,7 +45,7 @@ temp_resolution = 'daily'# 'monthly'
 vert_struct = 'zavg' # 'avg'  #(for pH zavg because offline carbonate chemistry only on z-levels for model output)
 vtype = 'oceanic' #'atmospheric'
 
-params = ThresholdParameters.standard_instance() 
+params = ThresholdParameters.fiona_instance() #Fiona's Instance = 95.
 
 #%% Get the model data
 print('Getting model data...')

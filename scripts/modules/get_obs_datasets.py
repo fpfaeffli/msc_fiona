@@ -179,7 +179,7 @@ class ObsGetter():
             # move from -180-180 grid to 0-360 longitude grid
             ds.coords['lon'] = (ds.coords['lon'] + 360) % 360 #- 180
             ds = ds.sortby(ds.lon)
-            da = ds.mld
+            da = ds.mld 
         return ds, da
 
     @staticmethod
