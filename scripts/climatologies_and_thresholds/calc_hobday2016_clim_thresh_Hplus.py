@@ -34,9 +34,9 @@ reload(func_for_clim_thresh)
 from func_for_clim_thresh import ThreshClimFuncs as ThreshClimFuncs
 
 #%% set the variable and threshold parameters
-var = 'pH_offl'  # Change to your desired variable
+var = 'Hplus'  # Change to your desired variable
 
-depth_level = 0  # m, i.e., surface
+depth_level_index = 0  # m, i.e., surface
 config =  'roms_only' #'romsoc_fully_coupled'
 scenario = 'present' # 'ssp245', 'ssp585'
 simulation_type =   'hindcast' #'spinup'
@@ -50,11 +50,17 @@ params = ThresholdParameters.fiona_instance() #Fiona's Instance = 95.
 #%% Get the model data
 print('Getting model data...')
 model_ds = ModelGetter.get_model_dataset(config, scenario, simulation_type, ensemble_run, temp_resolution, vert_struct, parent_model='mpi-esm1-2-hr', vtype=vtype)
-model_da = model_ds[var]
 
-#%% Load the model data into memory
-print('Loading the model data')
-model_da = model_da.compute()
+if var == 'Hplus':
+    var2 = 'pH_offl'
+    model_da = model_ds[var2].isel(depth=depth_level_index)
+    #% Load the model data into memory
+    print('Set the data type to float32.')
+    model_da = model_da.astype('float32')
+    print('Done setting the datatype. Start to load...')
+    model_da = model_da.compute()
+    model_da = 10**(-1*model_da) # convert to Hplus ion concentration
+    print('Done')
 
 #%% Do the climatology calculations
 print('Calc the climatology')
@@ -85,7 +91,7 @@ out_ds.attrs['scriptname'] = scriptname
 #%% Save the arrays
 print("Saving the arrays...")
 savepath = params.rootdir + 'model_output/'
-save_filename = f'hobday2016_threshold_and_climatology_{var}_{params.percentile}perc_{params.baseline_start_year}-{params.baseline_end_year}baseperiod_{params.baseline_type}baseline_{params.aggregation_window_size}aggregation_{params.smoothing_window_size}smoothing.nc'
+save_filename = f'hobday2016_threshold_and_climatology_{var}_{params.percentile}perc_{params.baseline_start_year}-{params.baseline_end_year}baseperiod_{params.baseline_type}baseline_{params.aggregation_window_size}aggregation_{params.smoothing_window_size}smoothing_{depth_level_index}depthlevelindex.nc'
 out_ds.to_netcdf(savepath + save_filename)
 
 #%%
