@@ -491,9 +491,9 @@ class ModelGetter():
     @staticmethod
     def get_threshold_climatology_dataset(config,scenario,varia,threshold_type,threshold_value,nzlevs=37,analysis_start_year=2011,analysis_end_year=2021,baseperiod_start_year=2011,baseperiod_end_year=2021,aggregation_kernel=11,smoothing_kernel=31):
         if threshold_type == 'relative':
-            root_dir = "/nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/extreme_analysis/thresholds_and_climatology/"
+            root_dir = "/nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/" #TODO change from /nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/extreme_analysis/thresholds_and_climatology/ to /nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/ ???
             path_name = '{}{}/{}/'.format(root_dir,config,scenario) 
-            file_name = f'hobday2016_threshold_and_climatology_{varia}_{nzlevs}zlevs_full_1x1meanpool_downsampling_{analysis_start_year}-{analysis_end_year}analysisperiod_{threshold_value}perc_{baseperiod_start_year}-{baseperiod_end_year}baseperiod_fixedbaseline_{aggregation_kernel}aggregation_{smoothing_kernel}smoothing.nc'
+            file_name = f'hobday2016_threshold_and_climatology_Hplus_95.0perc_2011-2021baseperiod_fixedbaseline_11aggregation_31smoothing_0depthlevelindex.nc'
             fn = xr.open_dataset(path_name+file_name)
         elif threshold_type == 'absolute':
             raise Exception('Not yet implemented.')
@@ -501,27 +501,27 @@ class ModelGetter():
 
     @staticmethod
     def include_feb29(data_365):
-        if np.size(data_365.time)==365:
-            data_365['time'] = pd.date_range('2001-01-01','2001-12-31')
-            # Calculate the mean of 28th February and 1st March
-            feb29 = (data_365.sel(time="2001-02-28") + data_365.sel(time="2001-03-01")) / 2
-            feb29['time'] = pd.to_datetime("2004-02-29")
-            # part1 and part 2
-            part1 = data_365.sel(time=slice(None,"2001-02-28"))
-            part1["time"] = pd.date_range("2004-01-01","2004-02-28")
-            part2 = data_365.sel(time=slice("2001-03-01",None))
-            part2["time"] = pd.date_range("2004-03-01","2004-12-31")
-            # concatenate the data
-            data_366 = xr.concat([part1,feb29,part2], dim="time")
-            data_366['time'] = np.arange(366)
-        # data_feb29 = np.mean(data_365[59:61,...],axis=0,keepdims=True)
-        # data_366 = np.concatenate((data_365[:60,...],data_feb29,data_365[60:,...]),axis=0)
-        return data_366
+        # Ensure data_365 is a NumPy array
+        if isinstance(data_365, np.ndarray):
+            if data_365.size == 365:
+                # Create a separate time array
+                time_array = pd.date_range('2001-01-01', '2001-12-31')
+                
+                # Handle leap year (Feb 29th)
+                feb_28_idx = (time_array == '2001-02-28').nonzero()[0][0]
+                mar_01_idx = (time_array == '2001-03-01').nonzero()[0][0]
+                feb_29_value = (data_365[feb_28_idx] + data_365[mar_01_idx]) / 2
+                
+                # Insert the new value for Feb 29th
+                data_365 = np.insert(data_365, mar_01_idx, feb_29_value)
+
+        return data_365
+
 
     @staticmethod
     def get_threshold(variable,depth_level,threshold_type,threshold_value,config,scenario):#,simulation_type,ensemble_run,temp_resolution,vert_struct,parent_model=None,vtype=None):
         fn = ModelGetter.get_threshold_climatology_dataset(config,scenario,variable,threshold_type,threshold_value)
-        threshold = fn.thresh_smoothed.sel(depth=depth_level)#[:,depth_idx,...].values
+        threshold = fn.thresh_smoothed.values #because new clim&thresh file has no depth dimension
         threshold_366 = ModelGetter.include_feb29(threshold)
         return threshold, threshold_366
     

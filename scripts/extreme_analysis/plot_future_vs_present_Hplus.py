@@ -42,13 +42,12 @@ from get_obs_datasets import ObsGetter as ObsGetter
 
 sys.path.append('/home/fpfaeffli/msc_fiona/scripts/climatologies_and_thresholds/')
 from set_thresh_and_clim_params import ThresholdParameters
-params = ThresholdParameters.standard_instance()
+params = ThresholdParameters.fiona_instance() #95th percentile threshold
 
-from funcs_for_clim_thresh import ThreshClimFuncs
-
-import funcs_for_clim_thresh
-reload(funcs_for_clim_thresh)
-from funcs_for_clim_thresh import ThreshClimFuncs
+from func_for_clim_thresh import ThreshClimFuncs
+import func_for_clim_thresh
+reload(func_for_clim_thresh)
+from func_for_clim_thresh import ThreshClimFuncs
 
 import xesmf as xe
 
@@ -91,21 +90,21 @@ for config in configs:
         #   cloud_ds[config][scenario]['lon'] = cloud_ds[config][scenario]['lon']+360.
 
 #%% load the data at the respective location
-## takes about 30min
+## takes about 10min
 
 variables = dict()
 for config in configs:
      variables[config] = dict()
      for scenario in scenarios:
-          print(f'Getting the variables for config {config} and scenrio {scenario}.')
+          print(f'Getting the variables for config {config} and scenario {scenario}.')
           #
           # oceanic variables
           variables[config][scenario] = dict()
-          print('pH_offl')
-          variables[config][scenario]['pH_offl'] = ocean_ds[config][scenario].temp.isel(depth=0).load() #.isel(depth=0,eta_rho=ocean_li[0],xi_rho=ocean_li[1]
+          print('Hplus')
+          variables[config][scenario]['Hplus'] = ocean_ds[config][scenario].temp.isel(depth=0).load()
 
 #%%
-varias = ['pH_offl']
+varias = ['Hplus']
 
 #%% GET THE CLIMATOLOGIES FOR EACH VARIABLE
 print('Get the climatology')
@@ -124,14 +123,14 @@ for config in configs:
 
 #%% GET THE THRESHOLD FOR EACH VARIABLE
 print('Get the present day threshold')
-varia = 'pH_offl'
+varia = 'Hplus'
 thresholds = dict()
 for config in configs:
      thresholds[config] = dict()
      for scenario in ['present']:#,'ssp245','ssp585']:
           thresholds[config][scenario] = dict()
           print(f'{config}, {scenario}')
-          threshold, threshold_366 = ModelGetter.get_threshold('temp',0,'relative',90,config,scenario)
+          threshold, threshold_366 = ModelGetter.get_threshold('Hplus',0,'relative',95,config,scenario) #variable,depth_level,threshold_type,threshold_value,config,scenario
           thresholds[config][scenario][varia] = ModelGetter.concatenate_yearly_arrays(threshold,threshold_366,start_year=2011,end_year=2021)
 
 #%%Adjust the thresholds

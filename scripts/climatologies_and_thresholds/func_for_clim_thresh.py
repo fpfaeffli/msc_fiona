@@ -78,7 +78,7 @@ class ThreshClimFuncs:
                 if pattribute != 'param_names':
                     print(pattribute)
                     out_ds.attrs['params.'+pattribute] = eval('params.'+pattribute)
-        out_ds.attrs['data_source_file'] = obs_ds['time'].encoding['source']
+        #out_ds.attrs['data_source_file'] = obs_ds['time'].encoding['source']
         out_ds.attrs['leap_years'] = 'Feb 29th values were discarded for the computation of the threshold and climatologies. They are thus 365 days long. In order to get a 366th value for leap years, I propose to linearly interpolate the values between Feb 28 and Mar 1.'
         return out_ds
     

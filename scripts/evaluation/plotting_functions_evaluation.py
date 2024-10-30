@@ -221,7 +221,7 @@ class Plotter():
         plotted_values['roms_minus_obs'] = annual_mean_roms-annual_mean_Obs_on_model_grid
 
         if savefig == True:
-            outpath = f'/nfs/sea/work/fpfaeffli/plots/maps_timeseries_eike/map_annual_means/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/maps_timeseries_H+/map_annual_means/'
             figname = f'{varia}_{depth}m.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
 
@@ -296,7 +296,7 @@ class Plotter():
         plotted_values['roms'] = romsoc_regional_mean
 
         if savefig == True:
-            outpath = f'/nfs/sea/work/fpfaeffli/plots/maps_timeseries_eike/avg_timeseries_regions/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/maps_timeseries_H+/avg_timeseries_regions/'
             figname = f'{varia}_{depth}m.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
 
@@ -387,7 +387,7 @@ class Plotter():
         plotted_values['romsoc'] = romsoc_regional_mean_clim_mean
 
         if savefig == True:
-            outpath = f'/nfs/sea/work/fpfaeffli/plots/maps_timeseries_eike/avg_timeseries_regions_clim/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/maps_timeseries_H+/avg_timeseries_regions_clim/'
             figname = f'{varia}_{depth}m.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
 
@@ -455,7 +455,7 @@ class Plotter():
         plt.tight_layout()
 
         if savefig == True:
-            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_eike/vertical_profiles/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_H+/vertical_profiles/'
             figname = f'{varia}_{plot_resolution}.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
 
@@ -559,7 +559,7 @@ class Plotter():
         cbar.ax.set_title(col['obs']['unit'])
 
         if savefig == True:
-            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_eike/time_vs_depth/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_H+/time_vs_depth/'
             figname = f'{varia}.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
 
@@ -675,7 +675,7 @@ class Plotter():
         cbar.ax.set_title(col['obs']['unit'])
 
         if savefig == True:
-            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_eike/time_vs_depth_clim/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_H+/time_vs_depth_clim/'
             figname = f'{varia}_{plot_resolution}_clim.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
         
@@ -736,7 +736,7 @@ class Plotter():
         cbar.ax.set_title(col['obs']['unit'])
 
         if savefig == True:
-            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_eike/depth_vs_dist2coast_transect/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_H+/depth_vs_dist2coast_transect/'
             figname = f'{varia}.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
 
@@ -846,7 +846,7 @@ class Plotter():
         plotted_values['roms_minus_obs'] = annual_mean_roms-annual_mean_Obs#_on_model_grid
 
         if savefig == True:
-            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_eike/autocorrelation_timescales_map/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_H+/autocorrelation_timescales_map/'
             figname = f'{varia}_{depth}m.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
 
@@ -904,7 +904,7 @@ class Plotter():
         plt.subplots_adjust(top=0.92)
         plotted_values = xr.Dataset()
         if savefig == True:
-            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_eike/autocorrelation_function_regionalized/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_H+/autocorrelation_function_regionalized/'
             figname = f'{varia_name}_acf_{dep}m_regional_means.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
         plt.show()
@@ -1080,7 +1080,7 @@ class Plotter():
         plotted_values['roms_minus_obs'] = annual_mean_roms-annual_mean_Obs#_on_model_grid
 
         if savefig == True:
-            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_eike/map_annual_mean_std/'
+            outpath = f'/nfs/sea/work/fpfaeffli/plots/verticals_H+/map_annual_mean_std/'
             figname = f'{varia}_{depth}m.png'
             plt.savefig(outpath+figname,dpi=200,transparent=True)
 

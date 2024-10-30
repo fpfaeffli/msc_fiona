@@ -755,7 +755,12 @@ class ObsGetter():
                 path_name = '{}oisst/'.format(root_dir) 
                 file_name = f'hobday2016_threshold_and_climatology_{varia}_{threshold_value}perc_{baseperiod_start_year}-{baseperiod_end_year}baseperiod_fixedbaseline_{aggregation_kernel}aggregation_{smoothing_kernel}smoothing.nc'
                 fn = xr.open_dataset(path_name+file_name)
+            elif varia == 'pH_offl' and dep == 0 and obs_temp_resolution == 'daily':
+                root_dir = "/nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/"
+                file_name = f'hobday2016_threshold_and_climatology_{varia}_{threshold_value}perc_{baseperiod_start_year}-{baseperiod_end_year}baseperiod_fixedbaseline_{aggregation_kernel}aggregation_{smoothing_kernel}smoothing.nc'
+                fn = xr.open_dataset(file_name)
         elif threshold_type == 'absolute':
+
             raise Exception('Not yet implemented.')
         return fn
 
