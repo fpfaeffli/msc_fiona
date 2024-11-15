@@ -44,13 +44,13 @@ from get_obs_datasets import ObsGetter as ObsGetter
 
 #%% Setting the variable to compare and across which models to compare
 
-var = 'Hplus'
+var = 'pH_offl' 
 
 dep = 0 # m
 vert_struct = 'zavg'    # 'zavg'
 
 plot_resolution = 'monthly'
-model_temp_resolution = 'monthly' # 'daily'
+model_temp_resolution =  'monthly' #'daily'
 obs_temp_resolution = 'monthly' # 'monthly'
 
 scenario = 'present'

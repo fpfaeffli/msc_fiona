@@ -12,6 +12,7 @@ import glob
 #%%
 
 class ModelGetter():
+
     """
     author: Eike E. Koehn
     date: June 7, 2024
@@ -490,10 +491,15 @@ class ModelGetter():
 
     @staticmethod
     def get_threshold_climatology_dataset(config,scenario,varia,threshold_type,threshold_value,nzlevs=37,analysis_start_year=2011,analysis_end_year=2021,baseperiod_start_year=2011,baseperiod_end_year=2021,aggregation_kernel=11,smoothing_kernel=31):
+        sys.path.append('/home/fpfaeffli/msc_fiona/scripts/modules/')
+        from set_thresh_and_clim_params import ThresholdParameters as ThresholdParameters
+        params = ThresholdParameters.fiona_instance() #95th percentile threshold
+        depth_level_index = 0
+
         if threshold_type == 'relative':
             root_dir = "/nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/" #TODO change from /nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/extreme_analysis/thresholds_and_climatology/ to /nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/ ???
             path_name = '{}{}/{}/'.format(root_dir,config,scenario) 
-            file_name = f'hobday2016_threshold_and_climatology_Hplus_95.0perc_2011-2021baseperiod_fixedbaseline_11aggregation_31smoothing_0depthlevelindex.nc'
+            file_name = f'hobday2016_threshold_and_climatology_{varia}_{params.percentile}perc_{params.baseline_start_year}-{params.baseline_end_year}baseperiod_{params.baseline_type}baseline_{params.aggregation_window_size}aggregation_{params.smoothing_window_size}smoothing_{depth_level_index}depthlevelindex.nc'
             fn = xr.open_dataset(path_name+file_name)
         elif threshold_type == 'absolute':
             raise Exception('Not yet implemented.')
@@ -501,34 +507,39 @@ class ModelGetter():
 
     @staticmethod
     def include_feb29(data_365):
-        # Ensure data_365 is a NumPy array
-        if isinstance(data_365, np.ndarray):
-            if data_365.size == 365:
-                # Create a separate time array
-                time_array = pd.date_range('2001-01-01', '2001-12-31')
-                
-                # Handle leap year (Feb 29th)
-                feb_28_idx = (time_array == '2001-02-28').nonzero()[0][0]
-                mar_01_idx = (time_array == '2001-03-01').nonzero()[0][0]
-                feb_29_value = (data_365[feb_28_idx] + data_365[mar_01_idx]) / 2
-                
-                # Insert the new value for Feb 29th
-                data_365 = np.insert(data_365, mar_01_idx, feb_29_value)
-
-        return data_365
+        if np.size(data_365.day_of_year_adjusted)==365:
+            data_365['day_of_year_adjusted'] = pd.date_range('2001-01-01','2001-12-31')
+            # Calculate the mean of 28th February and 1st March
+            feb29 = (data_365.sel(day_of_year_adjusted="2001-02-28") + data_365.sel(day_of_year_adjusted="2001-03-01")) / 2
+            feb29['day_of_year_adjusted'] = pd.to_datetime("2004-02-29")
+            # part1 and part 2
+            part1 = data_365.sel(day_of_year_adjusted=slice(None,"2001-02-28"))
+            part1["day_of_year_adjusted"] = pd.date_range("2004-01-01","2004-02-28")
+            part2 = data_365.sel(day_of_year_adjusted=slice("2001-03-01",None))
+            part2["day_of_year_adjusted"] = pd.date_range("2004-03-01","2004-12-31")
+            # concatenate the data
+            data_366 = xr.concat([part1,feb29,part2], dim="day_of_year_adjusted")
+            data_366['day_of_year_adjusted'] = np.arange(366)
+        # data_feb29 = np.mean(data_365[59:61,...],axis=0,keepdims=True)
+        # data_366 = np.concatenate((data_365[:60,...],data_feb29,data_365[60:,...]),axis=0)
+        return data_366
 
 
     @staticmethod
     def get_threshold(variable,depth_level,threshold_type,threshold_value,config,scenario):#,simulation_type,ensemble_run,temp_resolution,vert_struct,parent_model=None,vtype=None):
+        sys.path.append('/home/fpfaeffli/msc_fiona/scripts/modules/')
+        from set_thresh_and_clim_params import ThresholdParameters as ThresholdParameters
+        params = ThresholdParameters.fiona_instance() #95th percentile threshold
+        depth_level_index = 0
         fn = ModelGetter.get_threshold_climatology_dataset(config,scenario,variable,threshold_type,threshold_value)
-        threshold = fn.thresh_smoothed.values #because new clim&thresh file has no depth dimension
+        threshold = fn.thresh_smoothed #sel(depth=depth_level_index)#[:,depth_idx,...].values
         threshold_366 = ModelGetter.include_feb29(threshold)
         return threshold, threshold_366
     
     @staticmethod
     def get_climatology(variable,depth_level,threshold_type,threshold_value,config,scenario):#,simulation_type,ensemble_run,temp_resolution,vert_struct,parent_model=None,vtype=None):
         fn = ModelGetter.get_threshold_climatology_dataset(config,scenario,variable,threshold_type,threshold_value)
-        climatology = fn.clim_smoothed.sel(depth=depth_level)
+        climatology = fn.clim_smoothed #.sel(depth=depth_level)
         climatology_366 = ModelGetter.include_feb29(climatology)
         return climatology, climatology_366
     
@@ -544,14 +555,15 @@ class ModelGetter():
         year_range = np.arange(start_year,end_year+1)
         yearly_files_list = []
         for year in year_range:
-            if np.mod(year,4)==0:
+            if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0):
+
                 da = yearly_array_leap_year
             else:
                 da = yearly_array
-            da['time'] = pd.date_range(f'{year}-01-01',f'{year}-12-31')                
+            da = da.assign_coords(day_of_year_adjusted=pd.date_range(f'{year}-01-01', f'{year}-12-31'))                
             yearly_files_list.append(da)
-        concatenated_data = xr.concat(yearly_files_list,dim='time')
-        concatenated_data['time'] = pd.date_range(f'{start_year}-01-01',f'{end_year}-12-31')
+        concatenated_data = xr.concat(yearly_files_list,dim='day_of_year_adjusted')
+        concatenated_data['day_of_year_adjusted'] = pd.date_range(f'{start_year}-01-01',f'{end_year}-12-31')
         concatenated_data = concatenated_data.rename({'lat':'eta_rho','lon':'xi_rho'})
         return concatenated_data
 

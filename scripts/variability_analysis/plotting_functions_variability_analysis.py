@@ -8,7 +8,7 @@ description: collection of functions used for the plotting of some analyses rega
 import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
-from plotting_functions_general import PlotFuncs as PlotFuncs
+#from plotting_functions_general import PlotFuncs as PlotFuncs
 import cmocean as cmo
 import pandas as pd
 #sys.path.append('/home/koehne/Documents/publications/paper_future_simulations/scripts_clean/modules/')
