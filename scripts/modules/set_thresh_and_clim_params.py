@@ -60,6 +60,19 @@ class ThresholdParameters:
             smoothing_window_size=31,
             rootdir='/nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/',
         )
+    
+    @classmethod
+    def fifth_instance(cls):
+        return cls(
+            percentile=5.,
+            baseline_start_year=2011,
+            baseline_end_year=2021,
+            baseline_type='fixed',
+            daysinyear=365,
+            aggregation_window_size=11,
+            smoothing_window_size=31,
+            rootdir='/nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/',
+        )
 
     def get_param_by_name(self, name):
         for key, value in self.param_names.items():
@@ -74,6 +87,9 @@ print(default_params)
 
 fiona_params = ThresholdParameters.fiona_instance()
 print(fiona_params)
+
+fifth_params = ThresholdParameters.fifth_instance()
+print(fifth_params)
 
 #%%
 # Accessing a parameter by name

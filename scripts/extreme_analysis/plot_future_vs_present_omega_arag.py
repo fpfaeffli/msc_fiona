@@ -43,13 +43,12 @@ import xesmf as xe
 
 from plotting_functions_general import PlotFuncs as PlotFuncs
 
-from matplotlib.lines import Line2D
 
 #%% 
 # Define the threshold 
 sys.path.append('/home/fpfaeffli/msc_fiona/scripts/modules/')
 from set_thresh_and_clim_params import ThresholdParameters as ThresholdParameters
-params = ThresholdParameters.fiona_instance() #95th percentile threshold
+params = ThresholdParameters.fifth_instance() #5th percentile threshold
 
 #%%
 # Defining variables
@@ -89,14 +88,12 @@ for config in configs:
           #
           # oceanic variables
           variables[config][scenario] = dict()
-          print('Hplus')
-          # Convert pH to [H+] concentration
-          pH = ocean_ds[config][scenario].pH_offl.isel(depth=0).load()
-          variables[config][scenario]['Hplus'] = np.power(10, -pH)
+          print('omega_arag_offl')
+          variables[config][scenario]['omega_arag_offl'] = ocean_ds[config][scenario].omega_arag_offl.isel(depth=0).load()
           
 
 #%%
-varias = ['Hplus']
+varias = ['omega_arag_offl']
 
 #%% 
 # Get the climatology for each variable
@@ -118,14 +115,14 @@ for config in configs:
 #%% 
 # Get the threshold for each variable
 print('Get the present day threshold')
-varia = 'Hplus'
+varia = 'omega_arag_offl'
 thresholds = dict()
 for config in configs:
     thresholds[config] = dict()
     for scenario in ['present']:  # ,'ssp245','ssp585'
         thresholds[config][scenario] = dict()
         print(f'{config}, {scenario}')
-        threshold, threshold_366 = ModelGetter.get_threshold('Hplus', 0, 'relative', 95, config, scenario)  # variable, depth_level, threshold_type, threshold_value, config, scenario
+        threshold, threshold_366 = ModelGetter.get_threshold('omega_arag_offl', 0, 'relative', 95, config, scenario)  # variable, depth_level, threshold_type, threshold_value, config, scenario
         concatenated_threshold = ModelGetter.concatenate_yearly_arrays(threshold, threshold_366, start_year=2011, end_year=2021)
         #rename 'day_of_year_adjusted' to 'time' in the concatenated threshold
         if 'day_of_year_adjusted' in concatenated_threshold.dims:
@@ -164,17 +161,15 @@ model_area = ModelGetter.get_model_area()
 
 #%%
 ################################################ PLOTTING ##########################################################################
-# Plot the present day vs future extremes for the different thresholds
 # Maps for new, disappearing, intensifying, and weakening extreme days per year (romsoc_fully_coupled: present vs ssp585)
 
-
-present = variables['romsoc_fully_coupled']['present']['Hplus'] - thresholds['romsoc_fully_coupled']['present']['Hplus']
+present = variables['romsoc_fully_coupled']['present']['omega_arag_offl'] - thresholds['romsoc_fully_coupled']['present']['omega_arag_offl']
 scenario = 'ssp585'
 
 #%%
 ### THRESHOLD TYPE: 'present'
 threshold_type = 'present'
-future = variables['romsoc_fully_coupled'][scenario]['Hplus'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present']
+future = variables['romsoc_fully_coupled'][scenario]['omega_arag_offl'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present']
 
 # Define masks for the different extreme types
 non_extremes_mask = (future <= 0) * (present <= 0)
@@ -186,7 +181,7 @@ weakening_extremes_mask = (future > 0) * (present > 0) * (future < present)
 # Create subplots
 fig, ax = plt.subplots(1, 5, figsize=(18, 5), sharey=True)
 
-# Parameters 
+# Parameters
 vmax_large = 300
 vmax_small = 25
 cmap_small_range = plt.get_cmap('cmo.tempo', 15)
@@ -238,10 +233,10 @@ landmask_etopo = PlotFuncs.get_etopo_data()
 for axi in ax.flatten():
     axi.contourf(landmask_etopo.lon, landmask_etopo.lat, landmask_etopo, colors='#000000')
 
-# Set the figure title 
-fig.suptitle('Days per year of extreme surface Hplus concentrations based on present-day threshold (fixed baseline)', fontsize=16, y=1.02)
+# Set the figure title
+fig.suptitle('Days per year of extreme surface omega aragonite saturation based on present-day threshold (fixed baseline)', fontsize=16, y=1.02)
 
-# Explicitly adjust the top margin to prevent clipping of the title
+
 plt.subplots_adjust(top=0.85, right=0.9)
 
 # Colorbar settings 
@@ -257,7 +252,7 @@ cbax2.set_title('days\n    per year', pad=15)
 yticks2 = np.array([0, 5, 10, 15, 20, 25])
 cbax2.set_yticks(yticks2)
 
-# Axis limits and ticks 
+# Axis limits and ticks
 for axi in ax:
     axi.set_xlim([230, 245])
     axi.set_ylim([30, 50])
@@ -271,8 +266,8 @@ for axi in ax:
     axi.set_xticklabels([str(360 - val) + '°W' for val in xticks])
 
 # Save and show the figure
-savedir = '/nfs/sea/work/fpfaeffli/plots/future_vs_present/days_per_year_extremes/Hplus/'
-filename = f'future_vs_present_days_per_year_extremes_Hplus_{threshold_type}_threshold.png'
+savedir = '/nfs/sea/work/fpfaeffli/plots/future_vs_present/days_per_year_extremes/omega_arag_sat/'
+filename = f'future_vs_present_days_per_year_extremes_omega_arag_sat_{threshold_type}_threshold.png'
 plt.savefig(savedir + filename, dpi=200, transparent=True, bbox_inches='tight')
 
 plt.show()
@@ -280,7 +275,7 @@ plt.show()
 #%%
 ### THRESHOLD TYPE: 'present_plus_meandelta'
 threshold_type = 'present_plus_meandelta'
-future = variables['romsoc_fully_coupled'][scenario]['Hplus'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present_plus_meandelta']
+future = variables['romsoc_fully_coupled'][scenario]['omega_arag_offl'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present_plus_meandelta']
 
 # Define masks for the different extreme types
 non_extremes_mask = (future <= 0) * (present <= 0)
@@ -344,12 +339,11 @@ landmask_etopo = PlotFuncs.get_etopo_data()
 for axi in ax.flatten():
     axi.contourf(landmask_etopo.lon, landmask_etopo.lat, landmask_etopo, colors='#000000')
 
-# Set the figure title
-fig.suptitle('Days per year of extreme surface Hplus concentrations based on present_plus_meandelta threshold (moving baseline)', fontsize=16, y=1.02)
-
+# Set the figure title 
+fig.suptitle('Days per year of extreme surface omega aragonite saturation based on present_plus_meandelta threshold (moving baseline)', fontsize=16, y=1.02)
 plt.subplots_adjust(top=0.85, right=0.9)
 
-# Colorbar settings 
+# Colorbar settings
 cbax1 = fig.add_axes([0.05, 0.2, 0.025, 0.6])
 plt.colorbar(ax[0].collections[0], cax=cbax1, extend='max')
 cbax1.set_title('days\n    per year', pad=15)
@@ -362,7 +356,7 @@ cbax2.set_title('days\n    per year', pad=15)
 yticks2 = np.array([0, 10, 20])
 cbax2.set_yticks(yticks2)
 
-# Axis limits and ticks 
+# Axis limits and ticks
 for axi in ax:
     axi.set_xlim([230, 245])
     axi.set_ylim([30, 50])
@@ -376,14 +370,17 @@ for axi in ax:
     axi.set_xticklabels([str(360 - val) + '°W' for val in xticks])
 
 # Save and show the figure
-savedir = '/nfs/sea/work/fpfaeffli/plots/future_vs_present/days_per_year_extremes/Hplus/'
-filename = f'future_vs_present_days_per_year_extremes_Hplus_{threshold_type}_threshold.png'
+savedir = '/nfs/sea/work/fpfaeffli/plots/future_vs_present/days_per_year_extremes/omega_arag_sat/'
+filename = f'future_vs_present_days_per_year_extremes_omega_arag_sat_{threshold_type}_threshold.png'
 plt.savefig(savedir + filename, dpi=200, transparent=True, bbox_inches='tight')
+
+plt.show()
 
 
 # %% # Plots extreme days per year relative to the distance to coast
 
-present = variables['romsoc_fully_coupled']['present']['Hplus'] - thresholds['romsoc_fully_coupled']['present']['Hplus']
+
+present = variables['romsoc_fully_coupled']['present']['omega_arag_offl'] - thresholds['romsoc_fully_coupled']['present']['omega_arag_offl']
 
 for region_cho in ['all_dists_all_lats']:
     for threshold_type in ['present', 'present_plus_meandelta']:  # ,'present_plus_climdelta']:
@@ -398,13 +395,13 @@ for region_cho in ['all_dists_all_lats']:
         for scenario in ['ssp245', 'ssp585']:
 
             if threshold_type == 'present_plus_meandelta':
-                future = variables['romsoc_fully_coupled'][scenario]['Hplus'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present_plus_meandelta']
+                future = variables['romsoc_fully_coupled'][scenario]['omega_arag_offl'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present_plus_meandelta']
             elif threshold_type == 'present':
-                future = variables['romsoc_fully_coupled'][scenario]['Hplus'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present']
+                future = variables['romsoc_fully_coupled'][scenario]['omega_arag_offl'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present']
             elif threshold_type == 'present_plus_climdelta':
                 # Check if 'present_plus_climdelta' exists in the dataset
                 if 'present_plus_climdelta' in variables['romsoc_fully_coupled']:
-                    future = variables['romsoc_fully_coupled'][scenario]['Hplus'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present_plus_climdelta']
+                    future = variables['romsoc_fully_coupled'][scenario]['omega_arag_offl'] - thresholds_mult['romsoc_fully_coupled'][scenario]['present_plus_climdelta']
                 else:
                     print("Warning: 'present_plus_climdelta' not found in the dataset.")
                 continue  
@@ -494,38 +491,38 @@ for region_cho in ['all_dists_all_lats']:
             ax[3].plot(bins_d2coast[:-1], weakening_vs_d2coast_mean, color=color, alpha=1, linewidth=2, label=label_name)
             ax[3].fill_between(bins_d2coast[:-1], weakening_vs_d2coast_p75, weakening_vs_d2coast_p25, color=color, alpha=0.35)
 
-            ax[0].set_title('new extremes', loc='left')
-            ax[1].set_title('disappeared extremes', loc='left')
-            ax[2].set_title('intensified extremes', loc='left')
-            ax[3].set_title('weakened extremes', loc='left')
+            ax[0].set_title('New extremes', loc='left')
+            ax[1].set_title('Disappeared extremes', loc='left')
+            ax[2].set_title('Intensified extremes', loc='left')
+            ax[3].set_title('Weakened extremes', loc='left')
 
         for axi in ax:
             axi.set_xlim([0, 371])
             axi.grid(linestyle='--', alpha=0.25)
             axi.spines['top'].set_visible(False)
             axi.spines['right'].set_visible(False)
-            axi.axvline(100, color='black', linestyle='--', linewidth=2)
+            axi.axvline(100, color='C0', linestyle='--', linewidth=2)
             axi.set_xlabel('Dist. to coast in km')
         
         ax[0].set_ylabel('Extreme days per year\nfor respective extreme type')
 
         # Set y-limits 
         if threshold_type == 'present_plus_meandelta':
-            ax[0].set_ylim(0, 250) # New extremes
-            ax[1].set_ylim(0, 20)  # Disappeared extremes
-            ax[2].set_ylim(0, 15)  # Intensified extremes
-            ax[3].set_ylim(0, 5)  # Weakened extremes¨
+            ax[0].set_ylim(0, 50) # New extremes
+            ax[1].set_ylim(10, 20)  # Disappeared extremes
+            ax[2].set_ylim(0, 6)  # Intensified extremes
+            ax[3].set_ylim(0, 4)  # Weakened extremes¨
         elif threshold_type == 'present':
-            ax[0].set_ylim(150, 350) # New extremes
-            ax[1].set_ylim(0, 2.5)  # Disappeared extremes
-            ax[2].set_ylim(15, 23)  # Intensified extremes
-            ax[3].set_ylim(0, 2)  # Weakened extremes
+            ax[0].set_ylim(0, 10) # New extremes
+            ax[1].set_ylim(0, 5)  # Disappeared extremes
+            ax[2].set_ylim(0, 1)  # Intensified extremes
+            ax[3].set_ylim(0, 3)  # Weakened extremes
 
         # Set the figure title based on the threshold type
         if threshold_type == 'present_plus_meandelta':
-            fig.suptitle(f'Extreme Hplus days per year based on present_plus_meandelta ({scenario}) threshold (moving baseline)', fontsize=16, y=1.02)
+            fig.suptitle(f'Extreme omega aragonite saturation days per year based on present_plus_meandelta ({scenario}) threshold (moving baseline)', fontsize=16, y=1.02)
         else:
-            fig.suptitle(f'Extreme Hplus days per year based on present-day threshold (fixed threshold)', fontsize=16, y=1.02)
+            fig.suptitle(f'Extreme omega aragonite saturation days per year based on present-day threshold (fixed threshold)', fontsize=16, y=1.02)
         
         # Add the legend 
         legend_elements = [
@@ -541,12 +538,12 @@ for region_cho in ['all_dists_all_lats']:
             fontsize='medium'  
         )
 
-        plt.tight_layout(rect=[0, 0, 0.85, 1])  
-
+        plt.tight_layout(rect=[0, 0, 0.85, 1])
+        plt.tight_layout() 
 
         # Save and show the figure
-        savedir = '/nfs/sea/work/fpfaeffli/plots/future_vs_present/days_per_year_extremes/Hplus/'
-        filename = f'future_vs_present_dist2coast_days_per_year_Hplus_{threshold_type}_threshold.png'
+        savedir = '/nfs/sea/work/fpfaeffli/plots/future_vs_present/days_per_year_extremes/omega_arag_sat/'
+        filename = f'future_vs_present_dist2coast_days_per_year_extremes_omega_arag_sat_{threshold_type}_threshold.png'
         plt.savefig(savedir + filename, dpi=200, transparent=True, bbox_inches='tight')
 
         plt.show()
