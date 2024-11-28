@@ -49,7 +49,7 @@ class ThresholdParameters:
         )
     
     @classmethod
-    def fiona_instance(cls):
+    def Hplus_instance(cls):
         return cls(
             percentile=95.,
             baseline_start_year=2011,
@@ -62,7 +62,7 @@ class ThresholdParameters:
         )
     
     @classmethod
-    def fifth_instance(cls):
+    def omega_arag_instance(cls):
         return cls(
             percentile=5.,
             baseline_start_year=2011,
@@ -85,14 +85,10 @@ class ThresholdParameters:
 default_params = ThresholdParameters.standard_instance()
 print(default_params)
 
-fiona_params = ThresholdParameters.fiona_instance()
-print(fiona_params)
+Hplus_params = ThresholdParameters.Hplus_instance()
+print(Hplus_params)
 
-fifth_params = ThresholdParameters.fifth_instance()
-print(fifth_params)
+omega_arag_params = ThresholdParameters.omega_arag_instance()
+print(omega_arag_params)
 
-#%%
-# Accessing a parameter by name
-print("Standard:", default_params.get_param_by_name('Percentile'))
-print("Fiona:", fiona_params.get_param_by_name('Percentile'))
 # %%

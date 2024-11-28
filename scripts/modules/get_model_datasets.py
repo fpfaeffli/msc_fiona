@@ -493,13 +493,15 @@ class ModelGetter():
     def get_threshold_climatology_dataset(config,scenario,varia,threshold_type,threshold_value,nzlevs=37,analysis_start_year=2011,analysis_end_year=2021,baseperiod_start_year=2011,baseperiod_end_year=2021,aggregation_kernel=11,smoothing_kernel=31):
         sys.path.append('/home/fpfaeffli/msc_fiona/scripts/modules/')
         from set_thresh_and_clim_params import ThresholdParameters as ThresholdParameters
-        params = ThresholdParameters.fiona_instance() #95th percentile threshold
-        depth_level_index = 0
+        params = ThresholdParameters.omega_arag_instance() #95th percentile threshold
+        depth = 0
+        ensemble_run = '001'
+
 
         if threshold_type == 'relative':
-            root_dir = "/nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/" #TODO change from /nfs/kryo/work/koehne/roms/analysis/pactcs30/future_sim/extreme_analysis/thresholds_and_climatology/ to /nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/ ???
+            root_dir = "/nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/" 
             path_name = '{}{}/{}/'.format(root_dir,config,scenario) 
-            file_name = f'hobday2016_threshold_and_climatology_{varia}_{params.percentile}perc_{params.baseline_start_year}-{params.baseline_end_year}baseperiod_{params.baseline_type}baseline_{params.aggregation_window_size}aggregation_{params.smoothing_window_size}smoothing_{depth_level_index}depthlevelindex.nc'
+            file_name = f'hobday2016_threshold_and_climatology_{varia}_{params.percentile}perc_{params.baseline_start_year}-{params.baseline_end_year}baseperiod_{params.baseline_type}baseline_{params.aggregation_window_size}aggregation_{params.smoothing_window_size}smoothing_{depth}depthlevelindex_ensemble{ensemble_run}.nc'
             fn = xr.open_dataset(path_name+file_name)
         elif threshold_type == 'absolute':
             raise Exception('Not yet implemented.')
@@ -529,7 +531,7 @@ class ModelGetter():
     def get_threshold(variable,depth_level,threshold_type,threshold_value,config,scenario):#,simulation_type,ensemble_run,temp_resolution,vert_struct,parent_model=None,vtype=None):
         sys.path.append('/home/fpfaeffli/msc_fiona/scripts/modules/')
         from set_thresh_and_clim_params import ThresholdParameters as ThresholdParameters
-        params = ThresholdParameters.fiona_instance() #95th percentile threshold
+        params = ThresholdParameters.omega_arag_instance() #95th percentile threshold
         depth_level_index = 0
         fn = ModelGetter.get_threshold_climatology_dataset(config,scenario,variable,threshold_type,threshold_value)
         threshold = fn.thresh_smoothed #sel(depth=depth_level_index)#[:,depth_idx,...].values

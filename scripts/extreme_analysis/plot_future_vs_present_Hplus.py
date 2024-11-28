@@ -18,17 +18,10 @@ import xarray as xr
 import matplotlib.pyplot as plt
 import pandas as pd
 import cmocean
-from statsmodels.tsa.stattools import acf
 from get_study_regions import GetRegions as GetRegions
 from get_model_datasets import ModelGetter as ModelGetter
-from get_obs_datasets import ObsGetter as ObsGetter
-
-import multiprocessing
-from tqdm import tqdm
 
 from importlib import reload  # Python 3.4+
-
-import matplotlib.patheffects as pe
 
 import get_obs_datasets 
 reload(get_obs_datasets)
@@ -39,8 +32,6 @@ import func_for_clim_thresh
 reload(func_for_clim_thresh)
 from func_for_clim_thresh import ThreshClimFuncs
 
-import xesmf as xe
-
 from plotting_functions_general import PlotFuncs as PlotFuncs
 
 from matplotlib.lines import Line2D
@@ -49,17 +40,18 @@ from matplotlib.lines import Line2D
 # Define the threshold 
 sys.path.append('/home/fpfaeffli/msc_fiona/scripts/modules/')
 from set_thresh_and_clim_params import ThresholdParameters as ThresholdParameters
-params = ThresholdParameters.fiona_instance() #95th percentile threshold
+params = ThresholdParameters.Hplus_instance() #95th percentile threshold
 
 #%%
 # Defining variables
 model_temp_resolution = 'daily' # 'monthly'
-scenarios = ['present','ssp245','ssp585'] # ,'ssp245'
+scenarios = ['present','ssp585'] # ,'ssp245'
 configs = ['romsoc_fully_coupled'] # [ms_only'] 
 simulation_type = 'hindcast'
 parent_model = 'mpi-esm1-2-hr'
-ensemble_run = '000'
+ensemble_run = '001'
 vert_struct = 'zavg'    # 'avg'
+depth = 0
 
 #%% 
 # Get the model datasets for the oceanic and atmospheric variables
@@ -141,7 +133,7 @@ print('Adjust the thresholds')
 thresholds_mult = dict()
 for config in configs:
      thresholds_mult[config] = dict()
-     for scenario in ['present','ssp245','ssp585']:
+     for scenario in ['present','ssp585']:
           thresholds_mult[config][scenario] = dict()
           print(f'{config}, {scenario}')
           thresholds_mult[config][scenario]['present'] = thresholds[config]['present'][varia]
@@ -239,7 +231,7 @@ for axi in ax.flatten():
     axi.contourf(landmask_etopo.lon, landmask_etopo.lat, landmask_etopo, colors='#000000')
 
 # Set the figure title 
-fig.suptitle('Days per year of extreme surface Hplus concentrations based on present-day threshold (fixed baseline)', fontsize=16, y=1.02)
+fig.suptitle(f'Days per year of extreme surface Hplus concentrations based on present-day threshold (fixed baseline) (ensemble {ensemble_run})', fontsize=16, y=1.02)
 
 # Explicitly adjust the top margin to prevent clipping of the title
 plt.subplots_adjust(top=0.85, right=0.9)
@@ -272,7 +264,7 @@ for axi in ax:
 
 # Save and show the figure
 savedir = '/nfs/sea/work/fpfaeffli/plots/future_vs_present/days_per_year_extremes/Hplus/'
-filename = f'future_vs_present_days_per_year_extremes_Hplus_{threshold_type}_threshold.png'
+filename = f'future_vs_present_days_per_year_extremes_Hplus_{threshold_type}_threshold_ensemble{ensemble_run}.png'
 plt.savefig(savedir + filename, dpi=200, transparent=True, bbox_inches='tight')
 
 plt.show()
@@ -345,7 +337,7 @@ for axi in ax.flatten():
     axi.contourf(landmask_etopo.lon, landmask_etopo.lat, landmask_etopo, colors='#000000')
 
 # Set the figure title
-fig.suptitle('Days per year of extreme surface Hplus concentrations based on present_plus_meandelta threshold (moving baseline)', fontsize=16, y=1.02)
+fig.suptitle(f'Days per year of extreme surface Hplus concentrations based on present_plus_meandelta threshold (moving baseline) (emsemble {ensemble_run})', fontsize=16, y=1.02)
 
 plt.subplots_adjust(top=0.85, right=0.9)
 
@@ -377,11 +369,13 @@ for axi in ax:
 
 # Save and show the figure
 savedir = '/nfs/sea/work/fpfaeffli/plots/future_vs_present/days_per_year_extremes/Hplus/'
-filename = f'future_vs_present_days_per_year_extremes_Hplus_{threshold_type}_threshold.png'
+filename = f'future_vs_present_days_per_year_extremes_Hplus_{threshold_type}_threshold_ensemble{ensemble_run}.png'
 plt.savefig(savedir + filename, dpi=200, transparent=True, bbox_inches='tight')
 
 
 # %% # Plots extreme days per year relative to the distance to coast
+
+#### ONLY WORKS IF SSP245 DATA IS LOADED (ONLY ENSEMBLE 000)
 
 present = variables['romsoc_fully_coupled']['present']['Hplus'] - thresholds['romsoc_fully_coupled']['present']['Hplus']
 
@@ -523,9 +517,9 @@ for region_cho in ['all_dists_all_lats']:
 
         # Set the figure title based on the threshold type
         if threshold_type == 'present_plus_meandelta':
-            fig.suptitle(f'Extreme Hplus days per year based on present_plus_meandelta ({scenario}) threshold (moving baseline)', fontsize=16, y=1.02)
+            fig.suptitle(f'Extreme Hplus days per year based on present_plus_meandelta ({scenario}) threshold (moving baseline) (emsemble {ensemble_run})', fontsize=16, y=1.02)
         else:
-            fig.suptitle(f'Extreme Hplus days per year based on present-day threshold (fixed threshold)', fontsize=16, y=1.02)
+            fig.suptitle(f'Extreme Hplus days per year based on present-day threshold (fixed threshold) (emsemble {ensemble_run})', fontsize=16, y=1.02)
         
         # Add the legend 
         legend_elements = [
@@ -546,7 +540,7 @@ for region_cho in ['all_dists_all_lats']:
 
         # Save and show the figure
         savedir = '/nfs/sea/work/fpfaeffli/plots/future_vs_present/days_per_year_extremes/Hplus/'
-        filename = f'future_vs_present_dist2coast_days_per_year_Hplus_{threshold_type}_threshold.png'
+        filename = f'future_vs_present_dist2coast_days_per_year_Hplus_{threshold_type}_threshold__ensemble{ensemble_run}.png'
         plt.savefig(savedir + filename, dpi=200, transparent=True, bbox_inches='tight')
 
         plt.show()
