@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import cmocean
 from statsmodels.tsa.stattools import acf
+from matplotlib.lines import Line2D
 from get_study_regions import GetRegions as GetRegions
 from get_model_datasets import ModelGetter as ModelGetter
 from get_obs_datasets import ObsGetter as ObsGetter
@@ -52,29 +53,24 @@ params = ThresholdParameters.omega_arag_instance() #5th percentile threshold
 #%%
 # Defining variables
 model_temp_resolution = 'daily' # 'monthly'
-scenarios = ['present','ssp585'] # ,'ssp245'
-configs = ['romsoc_fully_coupled'] # [ms_only'] 
+scenarios = ['present', 'ssp245', 'ssp585'] # ,'ssp245'
+configs = ['romsoc_fully_coupled'] # ['roms_only'] 
 simulation_type = 'hindcast'
 parent_model = 'mpi-esm1-2-hr'
-ensemble_run = '000'
+ensemble_run = '000' #'001'
 vert_struct = 'zavg'    # 'avg'
 
 #%% 
-# Get the model datasets for the oceanic and atmospheric variables
+# Get the model datasets for the oceanic variables
 
 ocean_ds = dict()
-atmosphere_ds = dict()
-pressure_ds = dict()
-cloud_ds = dict()
 for config in configs:
      ocean_ds[config] = dict()
-     atmosphere_ds[config] = dict()
-     pressure_ds[config] = dict()
-     cloud_ds[config] = dict()
      for scenario in scenarios:
           print(f'--{config}, {scenario}--')
           print('ocean...')
           ocean_ds[config][scenario] = ModelGetter.get_model_dataset(config,scenario,simulation_type,ensemble_run,model_temp_resolution,vert_struct,vtype='oceanic',parent_model=parent_model)
+
 
 #%% 
 # load the data at the respective location
@@ -83,7 +79,7 @@ variables = dict()
 for config in configs:
      variables[config] = dict()
      for scenario in scenarios:
-          print(f'Getting the variables for config {config} and scenario {scenario}.')
+          print(f'Getting the variables for config {config} and scenario {scenario} and ensemble run {ensemble_run}.')
           #
           # oceanic variables
           variables[config][scenario] = dict()
@@ -137,7 +133,7 @@ print('Adjust the thresholds')
 thresholds_mult = dict()
 for config in configs:
      thresholds_mult[config] = dict()
-     for scenario in ['present','ssp585']:
+     for scenario in ['present', 'ssp245', 'ssp585']: #'ssp245'
           thresholds_mult[config][scenario] = dict()
           print(f'{config}, {scenario}')
           thresholds_mult[config][scenario]['present'] = thresholds[config]['present'][varia]
@@ -181,7 +177,7 @@ weakening_extremes_mask = (future <= 0) * (present <= 0) * (future > present)
 fig, ax = plt.subplots(1, 5, figsize=(18, 5), sharey=True)
 
 # Parameters
-vmax_large = 30
+vmax_large = 300
 vmax_small = 25
 cmap_small_range = plt.get_cmap('cmo.tempo', 10)
 cmap_big_range = plt.get_cmap('cmo.amp', 10)
@@ -242,7 +238,7 @@ plt.subplots_adjust(top=0.85, right=0.9)
 cbax1 = fig.add_axes([0.05, 0.2, 0.025, 0.6])
 plt.colorbar(ax[0].collections[0], cax=cbax1, extend='max')
 cbax1.set_title('days\n    per year', pad=15)
-yticks1 = np.array([0, 10, 20, 30])
+yticks1 = np.array([0, 50, 100, 150, 200, 250, 300])
 cbax1.set_yticks(yticks1)
 
 cbax2 = fig.add_axes([0.91, 0.2, 0.025, 0.6])
@@ -266,7 +262,7 @@ for axi in ax:
 
 # Save and show the figure
 savedir = '/nfs/sea/work/fpfaeffli/plots/future_vs_present/days_per_year_extremes/omega_arag_sat/'
-filename = f'future_vs_present_days_per_year_extremes_omega_arag_sat_{threshold_type}_threshold_ensemble{ensemble_run}.png'
+filename = f'future_vs_present_days_per_year_extremes_omega_arag_sat_{threshold_type}_threshold_ensemble{ensemble_run}_300days_axis.png'
 plt.savefig(savedir + filename, dpi=200, transparent=True, bbox_inches='tight')
 
 plt.show()
@@ -289,7 +285,7 @@ fig, ax = plt.subplots(1, 5, figsize=(18, 5), sharey=True)
 
 # Parameters 
 vmax_large = 30
-vmax_small = 30
+vmax_small = 25
 cmap_small_range = plt.get_cmap('cmo.tempo', 10)
 cmap_big_range = plt.get_cmap('cmo.amp', 10)
 
@@ -372,13 +368,14 @@ for axi in ax:
 # Save and show the figure
 savedir = '/nfs/sea/work/fpfaeffli/plots/future_vs_present/days_per_year_extremes/omega_arag_sat/'
 filename = f'future_vs_present_days_per_year_extremes_omega_arag_sat_{threshold_type}_threshold_ensemble{ensemble_run}.png'
-plt.savefig(savedir + filename, dpi=200, transparent=True, bbox_inches='tight')
+#plt.savefig(savedir + filename, dpi=200, transparent=True, bbox_inches='tight')
 
 plt.show()
 
 
 # %% # Plots extreme days per year relative to the distance to coast
-
+scenarios = ['present','ssp245', 'ssp585'] # ,'ssp245'
+configs = ['romsoc_fully_coupled'] # ['roms_only'] 
 
 present = variables['romsoc_fully_coupled']['present']['omega_arag_offl'] - thresholds['romsoc_fully_coupled']['present']['omega_arag_offl']
 
@@ -514,16 +511,16 @@ for region_cho in ['all_dists_all_lats']:
             ax[2].set_ylim(0, 6)  # Intensified extremes
             ax[3].set_ylim(0, 4)  # Weakened extremes¨
         elif threshold_type == 'present':
-            ax[0].set_ylim(0, 10) # New extremes
+            ax[0].set_ylim(0, 6) # New extremes
             ax[1].set_ylim(0, 5)  # Disappeared extremes
             ax[2].set_ylim(0, 1)  # Intensified extremes
             ax[3].set_ylim(0, 3)  # Weakened extremes
 
         # Set the figure title based on the threshold type
         if threshold_type == 'present_plus_meandelta':
-            fig.suptitle(f'Extreme omega aragonite saturation days per year based on present_plus_meandelta ({scenario})\n threshold (moving baseline)', fontsize=16, y=1.02)
+            fig.suptitle(f'Extreme omega aragonite saturation days per year based on present_plus_meandelta ({scenario})\n threshold (moving baseline) (ensemble {ensemble_run})', fontsize=16, y=1.02)
         else:
-            fig.suptitle(f'Extreme omega aragonite saturation days per year based on present-day threshold (fixed threshold)', fontsize=16, y=1.02)
+            fig.suptitle(f'Extreme omega aragonite saturation days per year based on present-day threshold (fixed threshold)  (ensemble {ensemble_run})', fontsize=16, y=1.02)
         
         # Add the legend 
         legend_elements = [

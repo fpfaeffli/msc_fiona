@@ -50,8 +50,7 @@ for config in configs:
         ocean_ds[config][scenario] = ModelGetter.get_model_dataset(config, scenario, simulation_type, ensemble_run, model_temp_resolution, vert_struct, vtype='oceanic', parent_model=parent_model)
 
 #%% Define variable
-varias = ['Hplus'] # 'pH_offl' , 'Hplus' , 'omega_arag_offl'
-
+varias = ['omega_arag_offl'] # 'pH_offl' , 'Hplus' , 'omega_arag_offl'
 
 #%% Define params based on the variable
 
@@ -59,6 +58,19 @@ if varias[0] == 'pH_offl' or varias[0] == 'Hplus':
     params = ThresholdParameters.Hplus_instance() #95th percentile threshold
 elif varias[0] == 'omega_arag_offl':
     params = ThresholdParameters.omega_arag_instance() #5th percentile threshold
+
+#%%
+
+#% Get the distance to coast file from ROMS and the regions over which to calculate the statistics
+model_d2coasts = dict()
+model_d2coasts['roms_only'] = ModelGetter.get_distance_to_coast(vtype='oceanic')
+
+# Get the model regions
+model_regions = dict()
+model_regions['roms_only'] = GetRegions.define_CalCS_regions(model_d2coasts['roms_only'].lon, model_d2coasts['roms_only'].lat, model_d2coasts['roms_only'])
+
+# Get the model area
+model_area = ModelGetter.get_model_area()
 
 #%% Load the data at the respective location
 variables = dict()
@@ -100,13 +112,308 @@ for config in configs:
             clims[config][scenario][varia] = ThreshClimFuncs.repeat_array_multiple_years(smoothed_clim)
 
 #%% Calculate and plot the mean values for each variable and scenario
-# Define the scenarios and configs as in the original script
-scenarios = ['present', 'ssp245', 'ssp585']
-configs = ['romsoc_fully_coupled']
+regions = {
+    "northern": (40.5, 50),
+    "central": (34.7, 40.5),
+    "southern": (30, 34.7)
+}
 
+for config in configs:
+    for scenario in scenarios:
+        for var in varias:
+            print(f"\nRegional means for {var} in {config}, {scenario}:")
+
+            data = variables[config][scenario][var]
+
+            # Filter out all values over 15 to avoid the land points getting included in the mean
+            data = data.where(data <= 15)
+
+            for region_name, (lat_min, lat_max) in regions.items():
+                # Create a mask for the latitude range
+                lat = data.coords["lat"]
+                mask = (lat >= lat_min) & (lat <= lat_max)
+
+                region_data = data.where(mask, drop=True)
+
+                # Calculate the mean 
+                regional_mean = region_data.mean(dim=["eta_rho", "xi_rho", "time"], skipna=True).values.item()
+                print(f"  {region_name.capitalize()} Region ({lat_min}° to {lat_max}°): {regional_mean}")
+
+
+""" 
+Results for Hplus:
+
+Regional means for Hplus in romsoc_fully_coupled, present:
+  Northern Region (40.5° to 50°): 7.208587094222702e-09
+  Central Region (34.7° to 40.5°): 7.648157135052504e-09
+  Southern Region (30° to 34.7°): 4.724110824803284e-09
+
+Regional means for Hplus in romsoc_fully_coupled, ssp245:
+  Northern Region (40.5° to 50°): 1.0347018446462063e-08
+  Central Region (34.7° to 40.5°): 1.095028972410268e-08
+  Southern Region (30° to 34.7°): 6.812238284520926e-09
+
+Regional means for Hplus in romsoc_fully_coupled, ssp585:
+  Northern Region (40.5° to 50°): 1.5046162445283874e-08
+  Central Region (34.7° to 40.5°): 1.5803866854165455e-08
+  Southern Region (30° to 34.7°): 9.90893191035909e-09
+
+Results for pH_offl:
+
+Regional means for pH_offl in romsoc_fully_coupled, present:
+  Northern Region (40.5° to 50°): 8.046490784683161
+  Central Region (34.7° to 40.5°): 8.045760011797617
+  Southern Region (30° to 34.7°): 8.058400060750342
+
+Regional means for pH_offl in romsoc_fully_coupled, ssp245:
+  Northern Region (40.5° to 50°): 7.8892634837749505
+  Central Region (34.7° to 40.5°): 7.889451641291051
+  Southern Region (30° to 34.7°): 7.899176804943013
+
+Regional means for pH_offl in romsoc_fully_coupled, ssp585:
+  Northern Region (40.5° to 50°): 7.726728488531865
+  Central Region (34.7° to 40.5°): 7.7303656935108345
+  Southern Region (30° to 34.7°): 7.736400510504098
+
+  
+Results for omega_arag_offl:
+
+Regional means for omega_arag_offl in romsoc_fully_coupled, present:
+  Northern Region (40.5° to 50°): 1.9984736527400169
+  Central Region (34.7° to 40.5°): 2.32724776285143
+  Southern Region (30° to 34.7°): 2.7258183933369384
+
+  Mean overall: 2.33
+
+Regional means for omega_arag_offl in romsoc_fully_coupled, ssp245:
+  Northern Region (40.5° to 50°): 1.5340139579761358
+  Central Region (34.7° to 40.5°): 1.789018823479026
+  Southern Region (30° to 34.7°): 2.0861851946906866
+
+  Mean overall: 1.83
+
+Regional means for omega_arag_offl in romsoc_fully_coupled, ssp585:
+  Northern Region (40.5° to 50°): 1.1381265371558955
+  Central Region (34.7° to 40.5°): 1.3444900265592823
+  Southern Region (30° to 34.7°): 1.5593920796799703
+
+  Mean overall: 1.35
+"""
+
+#%% 
+# Define bins for distance to coast
+bins_d2coast = [0, 100, np.max(model_d2coasts['roms_only'].values)]  # coastal: 0–100 km, offshore: >100 km
+bin_labels = ['coastal', 'offshore']  
+
+# %% Calculating the mean pH values for the different scenarios for coastal region and offshore region
+
+# Initialize dictionary to store results
+coastal_offshore_means = {}
+
+for config in configs:
+    coastal_offshore_means[config] = {}
+    for scenario in scenarios:
+        coastal_offshore_means[config][scenario] = {}
+        for var in varias:
+            print(f"\nProcessing {var} in {config}, {scenario}:")
+
+            # Get Hplus data and distance to coast
+            data = variables[config][scenario][var]
+            d2coast = model_d2coasts['roms_only']
+
+            # Flatten data and distance to coast for binning
+            d2coast_flat = d2coast.values.flatten()
+            data_flat = data.mean(dim="time", skipna=True).values.flatten()  # Mean over time
+
+            # Mask NaNs
+            nanmask = ~np.isnan(d2coast_flat) & ~np.isnan(data_flat)
+            d2coast_flat = d2coast_flat[nanmask]
+            data_flat = data_flat[nanmask]
+
+            # Bin data based on distance to coast
+            bin_indices = np.digitize(d2coast_flat, bins_d2coast)
+
+            # Compute means for each bin (Coastal and Offshore)
+            for bdx, label in enumerate(bin_labels):
+                bin_data = data_flat[bin_indices == bdx + 1]
+                if len(bin_data) > 0:  # Avoid errors with empty bins
+                    bin_mean = np.mean(bin_data)  # Mean for current bin
+                else:
+                    bin_mean = np.nan  # No data for this bin
+
+                # Print results
+                print(f"  {label} Mean ({bins_d2coast[bdx]}–{bins_d2coast[bdx + 1]} km): {bin_mean}")
+
+                # Store the results
+                if label not in coastal_offshore_means[config][scenario]:
+                    coastal_offshore_means[config][scenario][label] = []
+                coastal_offshore_means[config][scenario][label].append(bin_mean)
+
+print("\nSummary of coastal and offshore means:")
+for config, scenarios_data in coastal_offshore_means.items():
+    for scenario, regions_data in scenarios_data.items():
+        for region, means in regions_data.items():
+            print(f"{config} - {scenario} - {region}: {means}")
+
+"""
+Summary of Coastal and Offshore Means of Hplus:
+romsoc_fully_coupled - present - coastal: [9.289525443908393e-09]
+romsoc_fully_coupled - present - offshore: [9.031097905028417e-09]
+romsoc_fully_coupled - ssp245 - coastal: [1.2868395852681426e-08]
+romsoc_fully_coupled - ssp245 - offshore: [1.2789945992652557e-08]
+romsoc_fully_coupled - ssp585 - coastal: [1.8078316372919678e-08]
+romsoc_fully_coupled - ssp585 - offshore: [1.8332000763629608e-08]
+
+Summary of coastal and offshore means of pH_offl:
+romsoc_fully_coupled - present - coastal: [8.03868412049604]
+romsoc_fully_coupled - present - offshore: [8.046310659641787]
+romsoc_fully_coupled - ssp245 - coastal: [7.89671770352317]
+romsoc_fully_coupled - ssp245 - offshore: [7.894714766597022]
+romsoc_fully_coupled - ssp585 - coastal: [7.749082332476205]
+romsoc_fully_coupled - ssp585 - offshore: [7.738296055063372]
+
+Summary of coastal and offshore means of omega_arag_offl:
+romsoc_fully_coupled - present - coastal: [2.4971079766514714]
+romsoc_fully_coupled - present - offshore: [2.8220408175701928]
+romsoc_fully_coupled - ssp245 - coastal: [1.9877593234378141]
+romsoc_fully_coupled - ssp245 - offshore: [2.213561886821444]
+romsoc_fully_coupled - ssp585 - coastal: [1.5308377876342993]
+romsoc_fully_coupled - ssp585 - offshore: [1.6857885103446386]
+"""
+
+# %% Calculating the mean pH values for the different scenarios for coastal region and offshore region split up into southerm, central and northern regions
+# Define latitude regions
+regions = {
+    "southern": (30, 34.7),
+    "central": (34.7, 40.5),
+    "northern": (40.5, 50)
+}
+
+# Initialize dictionary to store results
+regional_coastal_offshore_means = {}
+
+for config in configs:
+    regional_coastal_offshore_means[config] = {}
+    for scenario in scenarios:
+        regional_coastal_offshore_means[config][scenario] = {}
+        for var in varias:
+            print(f"\nProcessing {var} in {config}, {scenario}:")
+            
+            # Get Hplus data and distance to coast
+            data = variables[config][scenario][var]
+            d2coast = model_d2coasts['roms_only']
+            lat = data.coords["lat"]
+
+            for region_name, (lat_min, lat_max) in regions.items():
+                print(f"  Region: {region_name.capitalize()} ({lat_min}° to {lat_max}°)")
+
+                # Create latitude mask for the region
+                lat_mask = (lat >= lat_min) & (lat <= lat_max)
+
+                # Apply the latitude mask
+                region_data = data.where(lat_mask)
+
+                # Flatten data and distance to coast for binning
+                d2coast_flat = d2coast.values.flatten()
+                region_data_flat = region_data.mean(dim="time", skipna=True).values.flatten()
+
+                # Mask NaNs
+                nanmask = ~np.isnan(d2coast_flat) & ~np.isnan(region_data_flat)
+                d2coast_flat = d2coast_flat[nanmask]
+                region_data_flat = region_data_flat[nanmask]
+
+                # Bin data based on distance to coast
+                bin_indices = np.digitize(d2coast_flat, bins_d2coast)
+
+                # Compute means for each bin (Coastal and Offshore)
+                for bdx, label in enumerate(bin_labels):
+                    bin_data = region_data_flat[bin_indices == bdx + 1]
+                    if len(bin_data) > 0:  # Avoid errors with empty bins
+                        bin_mean = np.mean(bin_data)  # Mean for current bin
+                    else:
+                        bin_mean = np.nan  # No data for this bin
+
+                    # Print results
+                    print(f"    {label} Mean ({bins_d2coast[bdx]}–{bins_d2coast[bdx + 1]} km): {bin_mean}")
+
+                    # Store the results
+                    if region_name not in regional_coastal_offshore_means[config][scenario]:
+                        regional_coastal_offshore_means[config][scenario][region_name] = {}
+                    if label not in regional_coastal_offshore_means[config][scenario][region_name]:
+                        regional_coastal_offshore_means[config][scenario][region_name][label] = []
+                    regional_coastal_offshore_means[config][scenario][region_name][label].append(bin_mean)
+
+print("\nSummary of regional coastal and offshore means:")
+for config, scenarios_data in regional_coastal_offshore_means.items():
+    for scenario, regions_data in scenarios_data.items():
+        for region, bins_data in regions_data.items():
+            for bin_label, means in bins_data.items():
+                print(f"{config} - {scenario} - {region.capitalize()} - {bin_label}: {means}")
+
+"""
+Summary of regional coastal and offshore means of Hplus:
+romsoc_fully_coupled - present - Southern - coastal: [9.069333008755343e-09]
+romsoc_fully_coupled - present - Southern - offshore: [8.73930227024583e-09]
+romsoc_fully_coupled - present - Central - coastal: [9.915313468078459e-09]
+romsoc_fully_coupled - present - Central - offshore: [8.933067974990449e-09]
+romsoc_fully_coupled - present - Northern - coastal: [9.411043119547298e-09]
+romsoc_fully_coupled - present - Northern - offshore: [9.00421895544354e-09]
+romsoc_fully_coupled - ssp245 - Southern - coastal: [1.2741764247195705e-08]
+romsoc_fully_coupled - ssp245 - Southern - offshore: [1.2663965090890772e-08]
+romsoc_fully_coupled - ssp245 - Central - coastal: [1.3443138748638023e-08]
+romsoc_fully_coupled - ssp245 - Central - offshore: [1.2912128245195544e-08]
+romsoc_fully_coupled - ssp245 - Northern - coastal: [1.269915532645469e-08]
+romsoc_fully_coupled - ssp245 - Northern - offshore: [1.3061922499444426e-08]
+romsoc_fully_coupled - ssp585 - Southern - coastal: [1.808456542802955e-08]
+romsoc_fully_coupled - ssp585 - Southern - offshore: [1.850323044531201e-08]
+romsoc_fully_coupled - ssp585 - Central - coastal: [1.8340881092799878e-08]
+romsoc_fully_coupled - ssp585 - Central - offshore: [1.8807316745401582e-08]
+romsoc_fully_coupled - ssp585 - Northern - coastal: [1.755435201804466e-08]
+romsoc_fully_coupled - ssp585 - Northern - offshore: [1.9149049420301958e-08]
+
+Summary of regional coastal and offshore means of pH_offl:
+romsoc_fully_coupled - present - Southern - coastal: [8.047465246379714]
+romsoc_fully_coupled - present - Southern - offshore: [8.060407924157756]
+romsoc_fully_coupled - present - Central - coastal: [8.014109220669617]
+romsoc_fully_coupled - present - Central - offshore: [8.050893659095633]
+romsoc_fully_coupled - present - Northern - coastal: [8.038212525808195]
+romsoc_fully_coupled - present - Northern - offshore: [8.047897422404793]
+romsoc_fully_coupled - ssp245 - Southern - coastal: [7.899501142623039]
+romsoc_fully_coupled - ssp245 - Southern - offshore: [7.899117249678885]
+romsoc_fully_coupled - ssp245 - Central - coastal: [7.880185826714971]
+romsoc_fully_coupled - ssp245 - Central - offshore: [7.8909545239130905]
+romsoc_fully_coupled - ssp245 - Northern - coastal: [7.907510059008177]
+romsoc_fully_coupled - ssp245 - Northern - offshore: [7.886163034585961]
+romsoc_fully_coupled - ssp585 - Southern - coastal: [7.747342695595833]
+romsoc_fully_coupled - ssp585 - Southern - offshore: [7.734391293675982]
+romsoc_fully_coupled - ssp585 - Central - coastal: [7.745952988773907]
+romsoc_fully_coupled - ssp585 - Central - offshore: [7.7278374888953945]
+romsoc_fully_coupled - ssp585 - Northern - coastal: [7.7669554559813445]
+romsoc_fully_coupled - ssp585 - Northern - offshore: [7.7198931417881225]
+
+Summary of regional coastal and offshore means for omega_arag_offl:
+romsoc_fully_coupled - present - Southern - coastal: [2.756667500577833]
+romsoc_fully_coupled - present - Southern - offshore: [2.720153844174468]
+romsoc_fully_coupled - present - Central - coastal: [2.1322224155675333]
+romsoc_fully_coupled - present - Central - offshore: [2.358880190081989]
+romsoc_fully_coupled - present - Northern - coastal: [1.9456395280314587]
+romsoc_fully_coupled - present - Northern - offshore: [2.0074512015134243]
+romsoc_fully_coupled - ssp245 - Southern - coastal: [2.1533917894742105]
+romsoc_fully_coupled - ssp245 - Southern - offshore: [2.0738446411303992]
+romsoc_fully_coupled - ssp245 - Central - coastal: [1.7136125257618788]
+romsoc_fully_coupled - ssp245 - Central - offshore: [1.8012494604627816]
+romsoc_fully_coupled - ssp245 - Northern - coastal: [1.5968663510504877]
+romsoc_fully_coupled - ssp245 - Northern - offshore: [1.5233341099146145]
+romsoc_fully_coupled - ssp585 - Southern - coastal: [1.6340630504626712]
+romsoc_fully_coupled - ssp585 - Southern - offshore: [1.545680908666053]
+romsoc_fully_coupled - ssp585 - Central - coastal: [1.3514246105106777]
+romsoc_fully_coupled - ssp585 - Central - offshore: [1.3433652613671225]
+romsoc_fully_coupled - ssp585 - Northern - coastal: [1.237084179502637]
+romsoc_fully_coupled - ssp585 - Northern - offshore: [1.1213117026986121]
+"""
 
 #%%
-# Calculate mean values for each variable and scenario
+# Calculate mean values for each variable and scenario over the whole research area
 mean_values = dict()
 for config in configs:
     mean_values[config] = dict()
@@ -259,6 +566,7 @@ for idx, scenario in enumerate(scenarios):
     ax[idx].set_title(f'{scenario} standard deviation')
 
 # Add continent (landmask) to all subplots
+landmask_etopo = PlotFuncs.get_etopo_data()
 for axi in ax.flatten():
     axi.contourf(landmask_etopo.lon, landmask_etopo.lat, landmask_etopo, colors='#000000')
 
@@ -282,6 +590,8 @@ elif varias[0] == 'omega_arag_offl':
     cbar_std.ax.set_title(r'Std Dev $\Omega_{arag}$', pad=25)
 
 # Axis limits and ticks 
+yticks = np.arange(30, 55, 5)
+xticks = np.arange(230, 245, 5)
 for axi in ax:
     axi.set_xlim([230, 245])
     axi.set_ylim([30, 50])
@@ -297,6 +607,7 @@ for axi in ax:
     axi.tick_params(axis='y', which='both', labelleft=True)
 
 # Save and show the figure
+savedir = '/nfs/sea/work/fpfaeffli/plots/future_vs_present/means_and_stdev/'
 filename = f'maps_std_{varias[0]}_concentrations_surface.png'
 plt.savefig(savedir + filename, dpi=200, transparent=True, bbox_inches='tight')
 plt.show()
@@ -308,7 +619,7 @@ fig, ax = plt.subplots(1, 2, figsize=(12, 5), sharey='row')
 # Automatically determine vmin and vmax for anomalies
 all_anomalies = [anomalies['romsoc_fully_coupled'][scenario][varias[0]] for scenario in ['ssp245', 'ssp585']]
 anomaly_min = min([data.min().values for data in all_anomalies])
-anomaly_max = max([data.max().values for data in all_anomalies])
+anomaly_max = 0
 
 # Parameters for plotting anomalies
 vmin_anomaly = anomaly_min  # Set a dynamic minimum value for anomalies
@@ -323,6 +634,7 @@ for idx, scenario in enumerate(['ssp245', 'ssp585']):
     ax[idx].set_title(f'{scenario} anomaly compared to present scenario')
 
 # Add continent (landmask) to all subplots
+landmask_etopo = PlotFuncs.get_etopo_data()
 for axi in ax.flatten():
     axi.contourf(landmask_etopo.lon, landmask_etopo.lat, landmask_etopo, colors='#000000')
 
@@ -347,7 +659,9 @@ elif varias[0] == 'omega_arag_offl':
     cbar_anomaly.ax.set_title(r'$\Omega_{arag}$ anomaly', pad=25)
 
 
-# Axis limits and ticks 
+# Axis limits and ticks
+yticks = np.arange(30, 55, 5)
+xticks = np.arange(230, 245, 5)
 for axi in ax:
     axi.set_xlim([230, 245])
     axi.set_ylim([30, 50])
@@ -363,6 +677,7 @@ for axi in ax:
     axi.tick_params(axis='y', which='both', labelleft=True)
 
 # Save and show the figure
+savedir = '/nfs/sea/work/fpfaeffli/plots/future_vs_present/means_and_stdev/'
 filename = f'maps_{varias[0]}_anomalies_surface.png'
 plt.savefig(savedir + filename, dpi=200, transparent=True, bbox_inches='tight')
 plt.show()
@@ -396,6 +711,7 @@ for idx, scenario in enumerate(scenarios):
     ax[idx].set_title(f'{scenario} deseasonalized')
 
 # Add continent (landmask) to all subplots
+landmask_etopo = PlotFuncs.get_etopo_data()
 for axi in ax.flatten():
     axi.contourf(landmask_etopo.lon, landmask_etopo.lat, landmask_etopo, colors='#000000')
 
@@ -428,6 +744,7 @@ for axi in ax:
     axi.tick_params(axis='y', which='both', labelleft=True)
 
 # Save and show the figure
+savedir = '/nfs/sea/work/fpfaeffli/plots/future_vs_present/means_and_stdev/'
 filename = f'maps_deseasonalized_{varias[0]}_concentrations.png'
 plt.savefig(savedir + filename, dpi=200, transparent=True, bbox_inches='tight')
 plt.show()

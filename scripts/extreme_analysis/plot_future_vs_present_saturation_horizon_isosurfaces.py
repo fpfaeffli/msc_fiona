@@ -111,109 +111,20 @@ for config in configs:
                 print(f"Variable '{var}' not found in the dataset for config '{config}' and scenario '{scenario}'.")
             
 
-#%% 
-# Calculating the climatology for each variable
-print('Get the climatology')
-clims = dict()
-for config in configs:
-     clims[config] = dict()
-     for scenario in scenarios:
-          clims[config][scenario] = dict()
-          for varia in varias:
-               print(f'Calculate the climatology for: {config}, {scenario}, {varia}.')
-               dummy_clim = ThreshClimFuncs.calc_clim(params,variables[config][scenario][varia])
-               smoothed_clim = ThreshClimFuncs.smooth_array(params,dummy_clim)
-               smoothed_clim = smoothed_clim.rename({'day_of_year_adjusted': 'time'})
-               smoothed_clim = smoothed_clim.assign_coords({'time': pd.date_range('2015-01-01','2015-12-31')})
-               clims[config][scenario][varia] = ThreshClimFuncs.repeat_array_multiple_years(smoothed_clim)
 
 #%%
-# Saving the climatologies to a NetCDF file
-dataset_clims = []
-
-for config in clims:
-    for scenario in clims[config]:
-        for varia in clims[config][scenario]:
-            print(f'Adding {config}, {scenario}, {varia} to climatology dataset.')
-            
-            clim_data = clims[config][scenario][varia]
-            
-            # Add `config` and `scenario` as coordinates to distinguish between the different datasets
-            clim_data = clim_data.expand_dims({'config': [config], 'scenario': [scenario]})
-            dataset_clims.append(clim_data.to_dataset(name=varia))
-
-# Combine all datasets 
-final_dataset_clims = xr.combine_by_coords(dataset_clims, combine_attrs="override")
-
-# Save to a NetCDF file
-output_file = f'/nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/romsoc_fully_coupled/climatologies_all_omega_arag_saturation_horizon_depth_all_configs_all_scenarios.nc'
-print(f'Saving dataset to {output_file}')
-final_dataset_clims.to_netcdf(output_file)
-print('Dataset saved successfully.')
-
-
-#%%
-# Load the climatologies 
+# Load the climatologies and thresholds
 print("Loading climatologies...")
-clims = xr.open_dataset(f'/nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/romsoc_fully_coupled/climatologies_all_omega_arag_saturation_horizon_depth_all_configs_all_scenarios.nc')
-print(clims)
+climatology = xr.open_dataset(f'/nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/romsoc_fully_coupled/clim_thresh_all_omega_arag_saturation_horizon_depth_romsoc_fully_coupled_present_day_threshold.nc')
+print(climatology)
 print("Dataset loaded")
-
-
-#%% 
-# Get the threshold for each variable
-print('Get the present day threshold')
-thresholds = dict()
-for config in configs:
-    thresholds[config] = dict()
-    for scenario in ['present']:
-        thresholds[config][scenario] = dict()
-        for varia in varias:
-            print(f'Calculating the threshold for: {config}, {scenario}, {varia}')
-            # Calculate the raw threshold using the calc_thresh function
-            dummy_thresh = ThreshClimFuncs.calc_thresh(params, variables[config][scenario][varia])
-            
-            # Smooth the threshold
-            smoothed_thresh = ThreshClimFuncs.smooth_array(params, dummy_thresh)
-            
-            # Rename and assign time coordinates to match the standard year structure
-            smoothed_thresh = smoothed_thresh.rename({'day_of_year_adjusted': 'time'})
-            smoothed_thresh = smoothed_thresh.assign_coords({'time': pd.date_range('2015-01-01', '2015-12-31')})
-            
-            # Repeat the smoothed threshold across the required year range
-            thresholds[config][scenario][varia] = ThreshClimFuncs.repeat_array_multiple_years(smoothed_thresh)
-            
-            print(f"Threshold for variable '{varia}' has been successfully calculated and stored.")
-
-# Saving the thresholds to a NetCDF file
-dataset_thresholds = []
-
-for config in thresholds:
-    for scenario in thresholds[config]:
-        for varia in thresholds[config][scenario]:
-            print(f'Adding threshold for {config}, {scenario}, {varia} to the dataset.')
-
-            thresh_data = thresholds[config][scenario][varia]
-
-            # Add `config` and `scenario` as coordinates
-            thresh_data = thresh_data.expand_dims({'config': [config], 'scenario': [scenario]})
-            dataset_thresholds.append(thresh_data.to_dataset(name=varia))
-
-# Combine all datasets along the `config` and `scenario` dimensions
-final_dataset_thresholds = xr.combine_by_coords(dataset_thresholds, combine_attrs="override")
-
-# Save to a NetCDF file
-output_file = f'/nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/romsoc_fully_coupled/thresholds_all_omega_arag_saturation_horizon_depth_all_configs_present_scenario.nc'
-print(f'Saving dataset to {output_file}')
-final_dataset_thresholds.to_netcdf(output_file)
-print('Dataset saved successfully.')
 
 
 #%%
 # Load the thresholds from netCDF 
 print("Loading thresholds...")
-thresholds = xr.open_dataset(f'/nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/romsoc_fully_coupled/thresholds_all_omega_arag_saturation_horizon_depth_all_configs_present_scenario.nc')
-print(thresholds)
+threshold = xr.open_dataset(f'/nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/romsoc_fully_coupled/thresholds_all_omega_arag_saturation_horizon_depth_all_configs_present_scenario.nc')
+print(threshold)
 print("Dataset loaded")
 
 #%%
@@ -225,8 +136,8 @@ for config in configs:
      for scenario in ['present','ssp245','ssp585']:
           thresholds_mult[config][scenario] = dict()
           print(f'{config}, {scenario}')
-          thresholds_mult[config][scenario]['present'] = thresholds[config]['present'][varia]
-          thresholds_mult[config][scenario]['present_plus_meandelta'] = thresholds[config]['present'][varia] + (clims[config][scenario][varia].mean(dim='time') - clims[config]['present'][varia].mean(dim='time'))
+          thresholds_mult[config][scenario]['present'] = threshold[config]['present'][varia]
+          thresholds_mult[config][scenario]['present_plus_meandelta'] = threshold[config]['present'][varia] + (climatology[config][scenario][varia].mean(dim='time') - climatology[config]['present'][varia].mean(dim='time'))
 
 
 #%%
@@ -407,7 +318,7 @@ present = {}
 for varia in varias:
     present[varia] = (
         variables['romsoc_fully_coupled']['present'][varia] -
-        thresholds['romsoc_fully_coupled']['present'][varia]
+        threshold['romsoc_fully_coupled']['present'][varia]
     )
 
 scenario = 'ssp585'
@@ -424,12 +335,12 @@ for varia in varias:
  
     present = (
         variables['romsoc_fully_coupled']['present'][varia] -
-        thresholds['romsoc_fully_coupled']['present'][varia]
+        threshold['romsoc_fully_coupled']['present'][varia]
     )
 
     future[varia] = (
         variables['romsoc_fully_coupled'][scenario][varia] -
-        thresholds['romsoc_fully_coupled']['present'][varia] 
+        threshold['romsoc_fully_coupled']['present'][varia] 
     )
 
     # Define masks for the different extreme types

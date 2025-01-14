@@ -12,14 +12,37 @@ sys.path.append('/home/fpfaeffli/msc_fiona/scripts/evaluation/')
 sys.path.append('/home/fpfaeffli/msc_fiona/scripts/climatologies_and_thresholds/')
 
 #%% Load required packages
+# load the package
 import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
 import pandas as pd
 import cmocean
+from statsmodels.tsa.stattools import acf
+from matplotlib.lines import Line2D
+from get_study_regions import GetRegions as GetRegions
 from get_model_datasets import ModelGetter as ModelGetter
-from plotting_functions_general import PlotFuncs as PlotFuncs
+from get_obs_datasets import ObsGetter as ObsGetter
 
+import multiprocessing
+from tqdm import tqdm
+
+from importlib import reload  # Python 3.4+
+
+import matplotlib.patheffects as pe
+
+import get_obs_datasets 
+reload(get_obs_datasets)
+from get_obs_datasets import ObsGetter as ObsGetter
+
+from func_for_clim_thresh import ThreshClimFuncs
+import func_for_clim_thresh
+reload(func_for_clim_thresh)
+from func_for_clim_thresh import ThreshClimFuncs
+
+import xesmf as xe
+
+from plotting_functions_general import PlotFuncs as PlotFuncs
 
 #%% Load datasets
 model_temp_resolution = 'daily'
@@ -157,7 +180,7 @@ plt.tight_layout()
 # Save and show the figure
 savedir = '/nfs/sea/work/fpfaeffli/plots/omega_below/'
 filename = f'days_per_year_omega_below_one_and_one_point_five_averaged_depth{depth}m.png'
-plt.savefig(savedir + filename, dpi=200, transparent=True)
+plt.savefig(savedir + filename, dpi=200, transparent=True, bbox_inches='tight')
 
 plt.show()
 
