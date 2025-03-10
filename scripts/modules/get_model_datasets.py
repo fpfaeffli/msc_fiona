@@ -493,10 +493,9 @@ class ModelGetter():
     def get_threshold_climatology_dataset(config,scenario,varia,threshold_type,threshold_value,nzlevs=37,analysis_start_year=2011,analysis_end_year=2021,baseperiod_start_year=2011,baseperiod_end_year=2021,aggregation_kernel=11,smoothing_kernel=31):
         sys.path.append('/home/fpfaeffli/msc_fiona/scripts/modules/')
         from set_thresh_and_clim_params import ThresholdParameters as ThresholdParameters
-        params = ThresholdParameters.omega_arag_instance() #95th percentile threshold
+        params = ThresholdParameters.Hplus_instance() #95th percentile threshold
         depth = 0
-        ensemble_run = '001'
-
+        ensemble_run = '000'
 
         if threshold_type == 'relative':
             root_dir = "/nfs/sea/work/fpfaeffli/future_sim/thresholds_and_climatologies/" 
@@ -531,7 +530,7 @@ class ModelGetter():
     def get_threshold(variable,depth_level,threshold_type,threshold_value,config,scenario):#,simulation_type,ensemble_run,temp_resolution,vert_struct,parent_model=None,vtype=None):
         sys.path.append('/home/fpfaeffli/msc_fiona/scripts/modules/')
         from set_thresh_and_clim_params import ThresholdParameters as ThresholdParameters
-        params = ThresholdParameters.omega_arag_instance() #95th percentile threshold
+        params = ThresholdParameters.Hplus_instance() #95th percentile threshold
         depth_level_index = 0
         fn = ModelGetter.get_threshold_climatology_dataset(config,scenario,variable,threshold_type,threshold_value)
         threshold = fn.thresh_smoothed #sel(depth=depth_level_index)#[:,depth_idx,...].values
@@ -568,6 +567,68 @@ class ModelGetter():
         concatenated_data['day_of_year_adjusted'] = pd.date_range(f'{start_year}-01-01',f'{end_year}-12-31')
         concatenated_data = concatenated_data.rename({'lat':'eta_rho','lon':'xi_rho'})
         return concatenated_data
+
+# now for both ensemble runs
+
+def get_threshold_for_all_ensembles(variable, depth_level, threshold_type, threshold_value, config, scenario):
+    """
+    Wrapper to get thresholds for all ensemble runs and combine the results.
+    """
+    ensemble_runs = ['000', '001']
+    thresholds = {}
+    thresholds_366 = {}
+
+    for ensemble in ensemble_runs:
+        try:
+            threshold, threshold_366 = ModelGetter.get_threshold(variable, depth_level, threshold_type, threshold_value, config, scenario, ensemble_run=ensemble)
+            thresholds[ensemble] = threshold
+            thresholds_366[ensemble] = threshold_366
+        except Exception as e:
+            print(f"Error processing ensemble {ensemble}: {e}")
+            thresholds[ensemble] = None
+            thresholds_366[ensemble] = None
+
+    return thresholds, thresholds_366
+
+def get_climatology_for_all_ensembles(variable, depth_level, threshold_type, threshold_value, config, scenario):
+    """
+    Wrapper to get climatologies for all ensemble runs and combine the results.
+    """
+    ensemble_runs = ['000', '001']
+    climatologies = {}
+    climatologies_366 = {}
+
+    for ensemble in ensemble_runs:
+        try:
+            climatology, climatology_366 = ModelGetter.get_climatology(variable, depth_level, threshold_type, threshold_value, config, scenario, ensemble_run=ensemble)
+            climatologies[ensemble] = climatology
+            climatologies_366[ensemble] = climatology_366
+        except Exception as e:
+            print(f"Error processing ensemble {ensemble}: {e}")
+            climatologies[ensemble] = None
+            climatologies_366[ensemble] = None
+
+    return climatologies, climatologies_366
+
+def get_intensity_normalizer_for_all_ensembles(variable, depth_level, threshold_type, threshold_value, config, scenario):
+    """
+    Wrapper to get intensity normalizers for all ensemble runs and combine the results.
+    """
+    ensemble_runs = ['000', '001']
+    normalizers = {}
+    normalizers_366 = {}
+
+    for ensemble in ensemble_runs:
+        try:
+            normalizer, normalizer_366 = ModelGetter.get_intensity_normalizer(variable, depth_level, threshold_type, threshold_value, config, scenario, ensemble_run=ensemble)
+            normalizers[ensemble] = normalizer
+            normalizers_366[ensemble] = normalizer_366
+        except Exception as e:
+            print(f"Error processing ensemble {ensemble}: {e}")
+            normalizers[ensemble] = None
+            normalizers_366[ensemble] = None
+
+    return normalizers, normalizers_366
 
 
 ########################################################################################################

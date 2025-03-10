@@ -45,7 +45,7 @@ params = ThresholdParameters.Hplus_instance() #95th percentile threshold
 #%%
 # Defining variables
 model_temp_resolution = 'daily' # 'monthly'
-scenarios = ['present','ssp585'] # ,'ssp245'
+scenarios = ['present','ssp585', 'ssp245'] # ,'ssp245'
 configs = ['romsoc_fully_coupled'] # [ms_only'] 
 simulation_type = 'hindcast'
 parent_model = 'mpi-esm1-2-hr'
@@ -375,7 +375,6 @@ plt.savefig(savedir + filename, dpi=200, transparent=True, bbox_inches='tight')
 
 # %% # Plots extreme days per year relative to the distance to coast
 
-#### ONLY WORKS IF SSP245 DATA IS LOADED (ONLY ENSEMBLE 000)
 
 present = variables['romsoc_fully_coupled']['present']['Hplus'] - thresholds['romsoc_fully_coupled']['present']['Hplus']
 

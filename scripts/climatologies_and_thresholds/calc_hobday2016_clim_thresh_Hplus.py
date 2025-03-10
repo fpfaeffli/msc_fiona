@@ -52,7 +52,7 @@ temp_resolution = 'daily'# 'monthly'
 vert_struct = 'zavg' # 'avg'  #(for pH zavg because offline carbonate chemistry only on z-levels for model output)
 vtype = 'oceanic' #'atmospheric'
 
-params = ThresholdParameters.fiona_instance() #Fiona's Instance = 95.
+params = ThresholdParameters.Hplus_instance() #= 95.
 
 #%% Get the model data
 print('Getting model data...')
