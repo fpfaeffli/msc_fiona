@@ -68,7 +68,7 @@ for config in configs:
           ocean_ds_raw[config][scenario] = ModelGetter.get_model_dataset(config,scenario,simulation_type,ensemble_run,model_temp_resolution,vert_struct,vtype='oceanic',parent_model=parent_model)
 
 #%%
-#for NO3, DIC, T
+#for NO3, DIC, T, salt
 
 # Defining variables
 model_temp_resolution = 'daily' # 'monthly'
@@ -103,17 +103,12 @@ w_scenario_dirs = {
 
 # Function to process dataset before merging
 def preprocess(ds):
-    """Ensure necessary coordinates exist before merging."""
-    if 'time' in ds.dims and 'time' not in ds.coords:
-        ds = ds.assign_coords(time=pd.date_range("2011-01-01", periods=ds.dims['time'], freq="D"))  # Adjust if needed
-
-    if 'eta_rho' in ds.dims and 'eta_rho' not in ds.coords:
-        ds = ds.assign_coords(eta_rho=("eta_rho", range(ds.dims['eta_rho'])))
+    """Ensure 'time' is set as a coordinate before merging."""
+    if "time" in ds.dims and "time" not in ds.coords:
+        ds = ds.assign_coords(time=ds["time"])  # Promote time from dimension to coordinate
     
-    if 'xi_rho' in ds.dims and 'xi_rho' not in ds.coords:
-        ds = ds.assign_coords(xi_rho=("xi_rho", range(ds.dims['xi_rho'])))
-
     return ds
+
 
 #%%
 # Initialize w_datasets
@@ -157,7 +152,7 @@ for config in configs:
 variables = dict()
 
 # List of variables from ocean_ds (50m depth)
-var_list = ["NO3"] #, "DIC", "Alk", "Temp", "Salt"
+var_list = ["DIC", "Alk", "NO3", "temp", "salt"] #, "DIC", "Alk", "emp", "alt"
 
 # Loop through each config and scenario
 for config in configs:
@@ -170,10 +165,10 @@ for config in configs:
         variables[config][scenario] = dict()
 
         # Load hbls from ocean_ds_raw
-        if scenario in ocean_ds_raw[config]:
-            if "hbls" in ocean_ds_raw[config][scenario]:
-                print(f"Loading hbls for {scenario}...")
-                variables[config][scenario]["hbls"] = ocean_ds_raw[config][scenario]["hbls"].load()
+        # if scenario in ocean_ds_raw[config]:
+        #     if "hbls" in ocean_ds_raw[config][scenario]:
+        #         print(f"Loading hbls for {scenario}...")
+        #         variables[config][scenario]["hbls"] = ocean_ds_raw[config][scenario]["hbls"].load()
 
         # Load NO3, DIC, Alk, Temp, Salt from ocean_ds at depth=10 (-50m)
         if scenario in ocean_ds[config]:
@@ -189,6 +184,22 @@ for config in configs:
 
 print("All variables loaded!")
 
+#%%
+# Fixing  time alignment issues:
+
+for config in configs:
+    for scenario in scenarios:
+        if "w" in variables[config][scenario]:
+            num_timesteps = variables[config][scenario]["w"].shape[0]  # Get time length
+
+            # Generate correct time values from 2011-01-01 onward
+            correct_time = pd.date_range("2011-01-01", periods=num_timesteps, freq="D")
+
+            # Assign proper time coordinate
+            variables[config][scenario]["w"] = variables[config][scenario]["w"].assign_coords(time=("time", correct_time))
+
+print("Time alignment applied to all scenarios!")
+
 
 
 #%%
@@ -196,31 +207,89 @@ print("All variables loaded!")
 #      UPWELLING INDICES      #
 ###############################
 
+# %%
+# Convert w from meters per second to meters per day
 
-#%%
+def convert_w_to_m_per_day(w_data):
+    """
+    Convert w (upwelling velocity) from m/s to m/day.
+    """
+    # Extract w
+    w_data = variables[config][scenario]["w"]
 
-# Compute CUTI (Coastal Upwelling Transport Index) and BEUTI (Biological Upwelling Transport Index)
+    # Check initial min and max values
+    print(f"Before conversion: Min = {w_data.min().values}, Max = {w_data.max().values}")
+
+    # Perform the conversion from m/s to m/day
+    w_data = w_data * 86400  # Convert from m/s to m/day
+    
+    # Check converted min and max values
+    print(f"After conversion: Min = {w_data.min().values}, Max = {w_data.max().values}")
+    
+    return w_data
+
+
+w_data = variables[config][scenario]["w"]
+
+# Convert w_data and print the min/max values
+w_data_converted = convert_w_to_m_per_day(w_data)
+
+
+
+# %%
+# Compute all upwelling indices for all scenarios
 for config in configs:
     for scenario in scenarios:
-        print(f"Computing CUTI & BEUTI for {config} - {scenario}...")
+        print(f"Computing indices for {config} - {scenario}...")
 
-        # Extract NO3 and w
-        w_data = variables[config][scenario].get("w")
-        NO3_data = variables[config][scenario].get("NO3")
+        # Extract NO3
+        NO3_data = variables[config][scenario]["NO3"]
+        DIC_data = variables[config][scenario]["DIC"]
+        Alk_data = variables[config][scenario]["Alk"]
+        Temp_data = variables[config][scenario]["temp"]
+        Salt_data = variables[config][scenario]["salt"]
 
         # Compute CUTI (upwelling velocity)
-        CUTI = w_data  # w is directly the upwelling velocity
+        CUTI = w_data_converted  # w is directly the upwelling velocity
 
         # Compute BEUTI (biological upwelling transport)
-        BEUTI = NO3_data * w_data  # Element-wise multiplication
+        BEUTI = NO3_data * w_data_converted  # Element-wise multiplication
+
+        # Compute rest of upwelling
+        DIC_upwelling = DIC_data * w_data_converted
+        Alk_upwelling = Alk_data * w_data_converted
+        Temp_upwelling = Temp_data * w_data_converted
+        Salt_upwelling = Salt_data * w_data_converted
 
         # Store in variables dictionary
         variables[config][scenario]["CUTI"] = CUTI
         variables[config][scenario]["BEUTI"] = BEUTI
+        variables[config][scenario]["DIC_upwelling"] = DIC_upwelling
+        variables[config][scenario]["Alk_upwelling"] = Alk_upwelling
+        variables[config][scenario]["Temp_upwelling"] = Temp_upwelling
+        variables[config][scenario]["Salt_upwelling"] = Salt_upwelling
 
-        print(f"CUTI & BEUTI computed for {config} - {scenario}!")
+        print(f"Upwelling indices computed for {config} - {scenario}!")
 
-print("All CUTI & BEUTI calculations completed!")
+print("All indices calculations completed!")
+
+
+#%%
+# Assign lon and lat to indices and w
+
+print("Assign lon/lat to indices...")
+for config in configs:
+    for scenario in scenarios:
+        # Extract lat/lon from NO3
+        lat_data = variables[config][scenario]["NO3"].coords["lat"]
+        lon_data = variables[config][scenario]["NO3"].coords["lon"]
+
+        # Assign them to CUTI & BEUTI
+        variables[config][scenario]["CUTI"] = variables[config][scenario]["CUTI"].assign_coords(lat=lat_data, lon=lon_data)
+        variables[config][scenario]["BEUTI"] = variables[config][scenario]["BEUTI"].assign_coords(lat=lat_data, lon=lon_data)
+        variables[config][scenario]["w"] = variables[config][scenario]["w"].assign_coords(lat=lat_data, lon=lon_data)
+        #variables[config][scenario]["hbls"] = variables[config][scenario]["hbls"].assign_coords(lat=lat_data, lon=lon_data)
+print("Assigned lat/lon coordinates to hbls, w, CUTI and BEUTI!")
 
 #%%
 ###############################
@@ -250,7 +319,7 @@ for config in configs:
 
 #%%
 ###############################
-#         PLOTTING MAPS       #
+#         PLOTTING HBLS       #
 ###############################
 
 
@@ -314,7 +383,7 @@ def plot_mean_hbls_map(hbls_dict, landmask_etopo, bounds, config="romsoc_fully_c
     plt.suptitle("Mean climatological mixed layer depth (hbls)", fontsize=20, y=1.05)
 
     # Save & Show
-    if filename:
+    if filename is not None:
         plt.savefig(filename, dpi=200, transparent=True, bbox_inches='tight')
         print(f"Plot saved as {filename}")
     plt.show()
@@ -336,7 +405,6 @@ plot_mean_hbls_map(
     scenarios=["present", "ssp245", "ssp585"], 
     filename=filename_hbls_map
 )
-
 
 
 
@@ -536,50 +604,76 @@ plot_monthly_hbls_anomalies(
     filename=f'/nfs/sea/work/fpfaeffli/plots/driver_analysis/hbls_lots/monthly_hbls_anomaly_ssp585.png'
 )
 
+
+
 # %%
 
-# Plotting monthly means of CUTI and BEUTI for all scenarios
+###############################
+#     PLOTTING INDICES        #
+###############################
+# %%
+
+# Plots maps of the monthly means of all the upwelling indices (CUTI, BEUTI, DIC upwelling, Alk upwelling) for all scenarios
 
 
-def plot_monthly_indices(variables, landmask_etopo, bounds, index="CUTI", config="romsoc_fully_coupled", scenario="present", filename=None):
+def plot_monthly_upwelling_indices_maps(variables, landmask_etopo, bounds, index_name="CUTI", config="romsoc_fully_coupled", scenario="present", filename=None):
     """
-    Plots the monthly mean maps of the given upwelling index (CUTI or BEUTI).
+    Plots the monthly mean maps of the selected upwelling index (CUTI, BEUTI, DIC_upwelling, Alk_upwelling) for a given scenario.
     """
     lat_bounds, lon_bounds = bounds
 
-    # Extract dataset for the selected index
-    index_data = variables[config][scenario].get(index)
+    # Extract dataset for the selected index (CUTI, BEUTI, DIC_upwelling, Alk_upwelling)
+    index_data = variables[config][scenario][index_name]
 
     # Detect latitude and longitude names
-    lat_name = next((coord for coord in index_data.coords if "lat" in coord.lower()), None)
-    lon_name = next((coord for coord in index_data.coords if "lon" in coord.lower()), None)
+    lat_name = "lat"
+    lon_name = "lon"
 
     lat_rho = index_data[lat_name].values
     lon_rho = index_data[lon_name].values
 
-    # Group by month and take the mean
+    # **Group by month and take the mean**
     index_monthly = index_data.groupby("time.month").mean(dim="time")
 
     # Create a figure with 12 subplots (3 rows, 4 columns)
     fig, axs = plt.subplots(3, 4, figsize=(20, 12), constrained_layout=True)
-    
-    # Define color scale
-    if index == "CUTI":
-        levels = np.linspace(-0.1, 0.1, 40)  # CUTI scale (upwelling velocity)
-        cmap = cmocean.cm.deep  
-    else:
-        levels = np.linspace(-0.5, 0.5, 40)  # BEUTI scale (nutrient transport)
-        cmap = cmocean.cm.speed  
+
+    # Define color scale based on the index
+    if index_name == "CUTI":
+        levels = np.linspace(0, 5, 20)  # CUTI scale (upwelling velocity)
+        cmap = cmocean.cm.thermal
+        color_label = "CUTI (m/day)"
+    elif index_name == "BEUTI":
+        levels = np.linspace(0, 200, 20)  # BEUTI scale (biological upwelling transport)
+        cmap = cmocean.cm.thermal
+        color_label = "BEUTI (mMol NO3 m⁻² d⁻¹)"
+    elif index_name == "DIC_upwelling":
+        levels = np.linspace(0, 20000, 20)  # DIC upwelling scale
+        cmap = cmocean.cm.thermal
+        color_label = "DIC Upwelling (mMol C m⁻² d⁻¹)"
+    elif index_name == "Alk_upwelling":
+        levels = np.linspace(0, 20000, 20)  # Alk upwelling scale
+        cmap = cmocean.cm.thermal
+        color_label = "Alk Upwelling (mMol m⁻² d⁻¹)"
+    elif index_name == "Temp_upwelling":
+        levels = np.linspace(0, 10, 20)
+        cmap = cmocean.cm.thermal
+        color_label = "Temp Upwelling (°C m d⁻¹)"
+    elif index_name == "Salt_upwelling":
+        levels = np.linspace(0, 10, 20)
+        cmap = cmocean.cm.thermal
+        color_label = "Salt Upwelling (PSU m d⁻¹)"
+
 
     for month in range(1, 13):  # Loop over 12 months
-        ax = axs[(month - 1) // 4, (month - 1) % 4]  
+        ax = axs[(month - 1) // 4, (month - 1) % 4]  # Correct subplot index
         
         # Select the monthly mean
         index_mean = index_monthly.sel(month=month)
 
         # Add landmask
-        ax.contourf(landmask_etopo.coords['lon'], landmask_etopo.coords['lat'], landmask_etopo, 
-                    levels=1, colors='black', zorder=1)
+        ax.contourf(landmask_etopo["lon"], landmask_etopo["lat"], landmask_etopo, 
+                    levels=1, colors='black', zorder=3)
 
         # Plot data
         contour = ax.contourf(lon_rho, lat_rho, index_mean, levels=levels, cmap=cmap,
@@ -603,10 +697,22 @@ def plot_monthly_indices(variables, landmask_etopo, bounds, index="CUTI", config
         ax.set_xticklabels([f"{360 - lon}°W" for lon in xticks])
 
     # Add a colorbar
-    cbar = fig.colorbar(contour, ax=axs, orientation="vertical", label=f"Monthly mean {index} index", shrink=0.7)
+    cbar = fig.colorbar(contour, ax=axs, orientation="vertical", label=color_label, shrink=0.7)
 
     # Add a title
-    plt.suptitle(f"Monthly mean {index} index - {scenario}", fontsize=20, y=1.05)
+    if index_name == "CUTI":
+        plt.suptitle(f"Monthly mean Coastal Upwelling Transport Index (CUTI) at 50m depth - {scenario}", fontsize=20, y=1.05)
+    elif index_name == "BEUTI":
+        plt.suptitle(f"Monthly mean Biological Upwelling Transport Index (BEUTI) at 50m depth - {scenario}", fontsize=20, y=1.05)
+    elif index_name == "DIC_upwelling":
+        plt.suptitle(f"Monthly mean DIC upwelling at 50m depth - {scenario}", fontsize=20, y=1.05)
+    elif index_name == "Alk_upwelling":
+        plt.suptitle(f"Monthly mean Alk upwelling at 50m depth - {scenario}", fontsize=20, y=1.05)
+    elif index_name == "Temp_upwelling":
+        plt.suptitle(f"Monthly mean Temperature upwelling at 50m depth - {scenario}", fontsize=20, y=1.05)
+    elif index_name == "Salt_upwelling":
+        plt.suptitle(f"Monthly mean Salinity upwelling at 50m depth - {scenario}", fontsize=20, y=1.05)
+
 
     # Save & Show
     if filename:
@@ -624,14 +730,364 @@ landmask_etopo = PlotFuncs.get_etopo_data()
 
 # **Call function to plot for each scenario**
 for scenario in ["present", "ssp245", "ssp585"]:
-    plot_monthly_indices(
+    for index_name in [ "Temp_upwelling", "Salt_upwelling"]: #"CUTI", "BEUTI", "DIC_upwelling", "Alk_upwelling",
+        plot_monthly_upwelling_indices_maps(
+            variables, landmask_etopo, bounds,
+            index_name=index_name, scenario=scenario,
+            filename=f'/nfs/sea/work/fpfaeffli/plots/driver_analysis/upwelling/monthly_{index_name}_{scenario}_whole_region.png'
+        )
+
+
+# %%
+
+# Plots a comparison of yearly means of all the upwelling indices for all scenarios
+
+def plot_mean_upwelling_index_scenarios(variables, landmask_etopo, bounds, index_name="CUTI", config="romsoc_fully_coupled", filename=None):
+    """
+    Plots the mean upwelling index (CUTI, BEUTI, DIC_upwelling, Alk_upwelling) over the entire time period
+    for all three scenarios ("present", "ssp245", "ssp585") in one figure.
+    """
+    lat_bounds, lon_bounds = bounds
+    scenarios = ["present", "ssp245", "ssp585"]
+    
+    # Define color scale based on the index
+    if index_name == "CUTI":
+        levels = np.linspace(0, 5, 20)
+        cmap = cmocean.cm.thermal
+        color_label = "CUTI (m/day)"
+    elif index_name == "BEUTI":
+        levels = np.linspace(0, 200, 20)
+        cmap = cmocean.cm.thermal
+        color_label = "BEUTI (mMol NO3 m⁻² d⁻¹)"
+    elif index_name == "DIC_upwelling":
+        levels = np.linspace(0, 20000, 20)
+        cmap = cmocean.cm.thermal
+        color_label = "DIC Upwelling (mMol C m⁻² d⁻¹)"
+    elif index_name == "Alk_upwelling":
+        levels = np.linspace(0, 20000, 20)
+        cmap = cmocean.cm.thermal
+        color_label = "Alk Upwelling (mMol m⁻² d⁻¹)"
+    elif index_name == "Temp_upwelling":
+        levels = np.linspace(0, 10, 20)
+        cmap = cmocean.cm.thermal
+        color_label = "Temp Upwelling (°C m d⁻¹)"
+    elif index_name == "Salt_upwelling":
+        levels = np.linspace(0, 10, 20)
+        cmap = cmocean.cm.thermal
+        color_label = "Salt Upwelling (PSU m d⁻¹)"
+
+    # Create figure with 3 subplots (one for each scenario)
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6), constrained_layout=True)
+    
+    for i, scenario in enumerate(scenarios):
+        ax = axes[i]
+        
+        # Extract dataset for the selected index
+        index_data = variables[config][scenario][index_name]
+
+        # Detect latitude and longitude names
+        lat_name = "lat"
+        lon_name = "lon"
+
+        lat_rho = index_data[lat_name].values
+        lon_rho = index_data[lon_name].values
+
+        # Compute mean over entire time period
+        index_mean = index_data.mean(dim="time")
+
+        # **Debugging: Print mean and range for each scenario**
+        print(f"\n{index_name} - {scenario}:")
+        print(f"Mean value: {np.nanmean(index_mean.values):.4f}")
+        print(f"Min value: {np.nanmin(index_mean.values):.4f}, Max value: {np.nanmax(index_mean.values):.4f}")
+
+        # Add landmask
+        ax.contourf(landmask_etopo["lon"], landmask_etopo["lat"], landmask_etopo, levels=1, colors='black', zorder=3)
+
+        # Plot data
+        contour = ax.contourf(lon_rho, lat_rho, index_mean, levels=levels, cmap=cmap, extend="both", zorder=2)
+
+        ax.set_xlim(lon_bounds)
+        ax.set_ylim(lat_bounds)
+        ax.set_xlabel("Longitude")
+        if i == 0:
+            ax.set_ylabel("Latitude")
+
+        # Add degree symbols
+        yticks = np.arange(lat_bounds[0], lat_bounds[1] + 1, 5)
+        xticks = np.arange(lon_bounds[0], lon_bounds[1] + 1, 5)
+        ax.set_yticks(yticks)
+        ax.set_xticks(xticks)
+        ax.set_yticklabels([f"{lat}°N" for lat in yticks])
+        ax.set_xticklabels([f"{360 - lon}°W" for lon in xticks])
+
+        # Title for each subplot
+        ax.set_title(f"{scenario}", fontsize=16)
+
+    # Add a single colorbar for all subplots
+    cbar_ax = fig.add_axes([0.25, -0.04, 0.5, 0.02])  # Adjusted placement
+    cbar = plt.colorbar(contour, cax=cbar_ax, orientation="horizontal", label=color_label)
+    
+    # Add overall title
+    if index_name == "CUTI":
+        plt.suptitle(f"Comparison of mean CUTI for all scenarios", fontsize=18)
+    elif index_name == "BEUTI":
+        plt.suptitle(f"Comparison of mean BEUTI for all scenarios", fontsize=18)
+    elif index_name == "DIC_upwelling":
+        plt.suptitle(f"Comparison of mean DIC upwelling for all scenarios", fontsize=18)
+    elif index_name == "Alk_upwelling":
+        plt.suptitle(f"Comparison of mean alkalinity upwelling for all scenarios", fontsize=18)
+    elif index_name == "Temp_upwelling":
+        plt.suptitle(f"Comparison of mean temperature upwelling for all scenarios", fontsize=18)
+    elif index_name == "Salt_upwelling":
+        plt.suptitle(f"Comparison of mean salinity upwelling for all scenarios", fontsize=18)
+
+
+    # Save & Show
+    if filename:
+        plt.savefig(filename, dpi=200, transparent=True, bbox_inches='tight')
+        print(f"Plot saved as {filename}")
+    plt.show()
+
+
+# **Define bounds and load landmask**
+lat_bounds = (30, 47)
+lon_bounds = (225, 245)
+bounds = (lat_bounds, lon_bounds)
+
+landmask_etopo = PlotFuncs.get_etopo_data()
+
+# **Call function to plot for each upwelling index**
+for index_name in ["BEUTI", "CUTI"]: #"CUTI", "BEUTI", "DIC_upwelling", "Alk_upwelling", "Temp_upwelling", "Salt_upwelling"
+    plot_mean_upwelling_index_scenarios(
         variables, landmask_etopo, bounds,
-        index="CUTI", scenario=scenario,
-        filename=f'/nfs/sea/work/fpfaeffli/plots/driver_analysis/upwelling/CUTI_{scenario}.png'
+        index_name=index_name,
+        filename=f'/nfs/sea/work/fpfaeffli/plots/driver_analysis/upwelling/mean_{index_name}_all_scenarios.png'
     )
 
-    plot_monthly_indices(
+
+
+#%%
+
+# Plots the anomalies of the yearly mean upwelling indices between present and future scenarios
+
+
+def plot_upwelling_anomalies(variables, landmask_etopo, bounds, index_name="CUTI", config="romsoc_fully_coupled", filename=None):
+    """
+    Plots the anomaly of the selected upwelling index (CUTI, BEUTI, DIC_upwelling, Alk_upwelling) 
+    for SSP245 and SSP585 compared to the present scenario.
+    """
+    
+    lat_bounds, lon_bounds = bounds
+
+    # Extract dataset for each scenario
+    index_present = variables[config]["present"][index_name].mean(dim="time")
+    index_ssp245 = variables[config]["ssp245"][index_name].mean(dim="time")
+    index_ssp585 = variables[config]["ssp585"][index_name].mean(dim="time")
+
+    # Compute **anomalies** (SSP - Present)
+    anomaly_ssp245 = index_ssp245 - index_present
+    anomaly_ssp585 = index_ssp585 - index_present
+
+    # Detect latitude and longitude names
+    lat_name = "lat"
+    lon_name = "lon"
+
+    lat_rho = index_present[lat_name].values
+    lon_rho = index_present[lon_name].values
+
+    # **Manually specify vmin and vmax for each index**
+    vmin_vmax_dict = {
+        "CUTI": (-2, 2),
+        "BEUTI": (-50, 50),
+        #"DIC_upwelling": (-5000, 5000),
+        #"Alk_upwelling": (-5000, 5000),
+        "Temp_upwelling": (-1, 1),
+        "Salt_upwelling": (-0.1, 0.1),
+    }
+
+    vmin, vmax = vmin_vmax_dict.get(index_name, (-1, 1))  # Default range if index is missing
+
+    # Define contour levels
+    levels = np.linspace(vmin, vmax, 20)
+    cmap = cmocean.cm.balance  # Diverging colormap for positive/negative changes
+
+    # Define colorbar label based on index
+    color_labels = {
+        "CUTI": "CUTI anomaly (future - present)",
+        "BEUTI": "BEUTI anomaly (future - present)",
+        #"DIC_upwelling": "DIC upwelling anomaly (future - present)",
+        #"Alk_upwelling": "Alk upwelling anomaly (future - present)",
+        "Temp_upwelling": "Temperature upwelling anomaly (future - present)",
+        "Salt_upwelling": "Salinity upwelling anomaly (future - present)",
+    }
+    color_label = color_labels.get(index_name, "Anomaly (future - present)")
+
+    # Create figure with 2 subplots (SSP245, SSP585 anomalies)
+    fig, axs = plt.subplots(1, 2, figsize=(14, 6), constrained_layout=True)
+
+    scenarios = ["ssp245", "ssp585"]
+    anomalies = [anomaly_ssp245, anomaly_ssp585]
+
+    for i, (scenario, anomaly) in enumerate(zip(scenarios, anomalies)):
+        ax = axs[i]
+
+        # Add landmask
+        ax.contourf(landmask_etopo["lon"], landmask_etopo["lat"], landmask_etopo, 
+                    levels=[0, 1], colors='black', zorder=3)
+
+        # Plot data
+        contour = ax.contourf(lon_rho, lat_rho, anomaly, levels=levels, cmap=cmap, 
+                              extend="both", zorder=2)
+
+        ax.set_xlim(lon_bounds)
+        ax.set_ylim(lat_bounds)
+        ax.set_title(f"{scenario} - present", fontsize=14)
+        ax.set_xlabel("Longitude")
+        if i == 0:
+            ax.set_ylabel("Latitude")
+
+        # Add degree symbols
+        yticks = np.arange(lat_bounds[0], lat_bounds[1] + 1, 5)
+        xticks = np.arange(lon_bounds[0], lon_bounds[1] + 1, 5)
+        ax.set_yticks(yticks)
+        ax.set_xticks(xticks)
+        ax.set_yticklabels([f"{lat}°N" for lat in yticks])
+        ax.set_xticklabels([f"{360 - lon}°W" for lon in xticks])
+
+    # Add a colorbar
+    cbar = fig.colorbar(contour, ax=axs, orientation="vertical", label=color_label, shrink=0.8)
+
+    # Add a title
+    plt.suptitle(color_label, fontsize=18)
+
+    # Save & Show
+    if filename:
+        plt.savefig(filename, dpi=200, transparent=True, bbox_inches='tight')
+        print(f"Plot saved as {filename}")
+    plt.show()
+
+
+# **Define bounds and load landmask**
+lat_bounds = (30, 47)
+lon_bounds = (225, 245)
+bounds = (lat_bounds, lon_bounds)
+
+landmask_etopo = PlotFuncs.get_etopo_data()
+
+# **Call function to plot anomalies for each upwelling index**
+for index_name in ["CUTI", "BEUTI"]: #"CUTI", "BEUTI", "DIC_upwelling", "Alk_upwelling",
+    plot_upwelling_anomalies(
         variables, landmask_etopo, bounds,
-        index="BEUTI", scenario=scenario,
-        filename=f'/nfs/sea/work/fpfaeffli/plots/driver_analysis/upwelling/BEUTI_{scenario}.png'
+        index_name=index_name,
+        filename=f'/nfs/sea/work/fpfaeffli/plots/driver_analysis/upwelling/anomaly_{index_name}.png'
+    )
+
+
+
+#%%
+###############################
+#     PLOTTING VARIABLES     #
+###############################
+
+# %%
+# Plot monthly means of w and NO3 for all scenarios
+
+def plot_monthly_maps(variables, landmask_etopo, bounds, var_name="w", config="romsoc_fully_coupled", scenario="present", filename=None):
+    """
+    Plots the monthly mean maps of the selected variable (w or NO3) for a given scenario.
+    """
+    lat_bounds, lon_bounds = bounds
+
+    # Extract dataset for the selected variable
+    var_data = variables[config][scenario][var_name]
+    
+    # Detect latitude and longitude names
+    lat_name = "lat"
+    lon_name = "lon"
+
+    lat_rho = var_data[lat_name].values
+    lon_rho = var_data[lon_name].values
+
+    # **Group by month and take the mean**
+    var_monthly = var_data.groupby("time.month").mean(dim="time")
+
+    # Create a figure with 12 subplots (3 rows, 4 columns)
+    fig, axs = plt.subplots(3, 4, figsize=(20, 12), constrained_layout=True)
+
+    # Define color scale based on the variable
+    if var_name == "w":
+        levels = np.linspace(0, 0.0001, 20)  # w scale (vertical velocity)
+        cmap = cmocean.cm.dense
+        color_label = "Vertical velocity (m/s)"
+    else:
+        levels = np.linspace(0, np.nanmax(var_monthly), 20)  # NO3 scale (concentration)
+        cmap = cmocean.cm.thermal
+        color_label = "Nitrate Concentration (mmol/m³)"
+
+    for month in range(1, 13):  # Loop over 12 months
+        ax = axs[(month - 1) // 4, (month - 1) % 4]  # Correct subplot index
+        
+        # Select the monthly mean
+        var_mean = var_monthly.sel(month=month)
+
+        # Add landmask
+        ax.contourf(landmask_etopo["lon"], landmask_etopo["lat"], landmask_etopo, 
+                    levels=1, colors='black', zorder=3)
+
+        # Plot data
+        contour = ax.contourf(lon_rho, lat_rho, var_mean, levels=levels, cmap=cmap,
+                              extend="both", zorder=2)
+
+        ax.set_xlim(lon_bounds)
+        ax.set_ylim(lat_bounds)
+        month_names = ["January", "February", "March", "April", "May", "June", 
+                       "July", "August", "September", "October", "November", "December"]
+        ax.set_title(month_names[month - 1], fontsize=14)
+        ax.set_xlabel("Longitude")
+        if month in [1, 5, 9]:  # Label y-axis only on the leftmost subplots
+            ax.set_ylabel("Latitude")
+
+        # Add degree symbols
+        yticks = np.arange(lat_bounds[0], lat_bounds[1] + 1, 5)
+        xticks = np.arange(lon_bounds[0], lon_bounds[1] + 1, 5)
+        ax.set_yticks(yticks)
+        ax.set_xticks(xticks)
+        ax.set_yticklabels([f"{lat}°N" for lat in yticks])
+        ax.set_xticklabels([f"{360 - lon}°W" for lon in xticks])
+
+    # Add a colorbar
+    cbar = fig.colorbar(contour, ax=axs, orientation="vertical", label=color_label, shrink=0.7)
+
+    # Add a title
+    if var_name == "w":
+        plt.suptitle(f"Monthly mean vertical velocity (w) at 50m depth ({scenario})", fontsize=20, y=1.05)
+    elif var_name == "NO3":
+        plt.suptitle(f"Monthly mean nitrate concentration at 50m depth ({scenario})", fontsize=20, y=1.05)
+
+    # Save & Show
+    if filename:
+        plt.savefig(filename, dpi=200, transparent=True, bbox_inches='tight')
+        print(f"Plot saved as {filename}")
+    plt.show()
+
+
+# **Define bounds and load landmask**
+lat_bounds = (30, 47)
+lon_bounds = (225, 245)
+bounds = (lat_bounds, lon_bounds)
+
+landmask_etopo = PlotFuncs.get_etopo_data()
+
+# **Call function to plot for each scenario**
+for scenario in ["present", "ssp245", "ssp585"]:
+    plot_monthly_maps(
+        variables, landmask_etopo, bounds,
+        var_name="w", scenario=scenario,
+        filename=f'/nfs/sea/work/fpfaeffli/plots/driver_analysis/upwelling/monthly_w_{scenario}.png'
+    )
+
+    plot_monthly_maps(
+        variables, landmask_etopo, bounds,
+        var_name="NO3", scenario=scenario,
+        filename=f'/nfs/sea/work/fpfaeffli/plots/driver_analysis/upwelling/monthly_NO3_{scenario}.png'
     )

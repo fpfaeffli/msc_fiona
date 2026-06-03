@@ -116,7 +116,7 @@ def load_data_in(varia):
 
 hplus = load_data_in('Hplus')
 tem = load_data_in('temp')
-sal = load_data_in('salt')
+#sal = load_data_in('salt')
 dic = load_data_in('DIC')
 alk = load_data_in('Alk')
 
@@ -143,7 +143,7 @@ def load_clim_in(varia):
 
 hplus_clim = load_clim_in('Hplus')
 tem_clim = load_clim_in('temp')
-sal_clim = load_clim_in('salt')
+#sal_clim = load_clim_in('salt')
 dic_clim = load_clim_in('DIC')
 alk_clim = load_clim_in('Alk')
 
@@ -203,7 +203,7 @@ def calc_anomalies_rel_to_clim(inst_dict,clim_dict):
 
 hplus_anom = calc_anomalies_rel_to_clim(hplus,hplus_clim)
 tem_anom   = calc_anomalies_rel_to_clim(tem,tem_clim)
-sal_anom   = calc_anomalies_rel_to_clim(sal,sal_clim)
+#sal_anom   = calc_anomalies_rel_to_clim(sal,sal_clim)
 dic_anom   = calc_anomalies_rel_to_clim(dic,dic_clim)
 alk_anom   = calc_anomalies_rel_to_clim(alk,alk_clim)
 
@@ -334,7 +334,7 @@ def multiply_anom_with_sens(varia, sens_wrt_var, anoms, sens_dict):
 
 
 dtem_times_dhdtem = multiply_anom_with_sens('temp', 'h', tem_anom, sens_dict)
-dsal_times_dhdsal = multiply_anom_with_sens('salt', 'h', sal_anom, sens_dict)
+#dsal_times_dhdsal = multiply_anom_with_sens('salt', 'h', sal_anom, sens_dict)
 ddic_times_dhddic = multiply_anom_with_sens('DIC', 'h', dic_anom, sens_dict)
 dalk_times_dhdalk = multiply_anom_with_sens('Alk', 'h', alk_anom, sens_dict)
 
@@ -363,7 +363,7 @@ def apply_extreme_masks(mult_dict, mask_dict):
     return applied_mask_dict
 
 dtem_times_dhdtem_masked = apply_extreme_masks(dtem_times_dhdtem, extreme_mask_dict)
-dsal_times_dhdsal_masked = apply_extreme_masks(dsal_times_dhdsal, extreme_mask_dict)
+#dsal_times_dhdsal_masked = apply_extreme_masks(dsal_times_dhdsal, extreme_mask_dict)
 ddic_times_dhddic_masked = apply_extreme_masks(ddic_times_dhddic, extreme_mask_dict)
 dalk_times_dhdalk_masked = apply_extreme_masks(dalk_times_dhdalk, extreme_mask_dict)
 
@@ -386,7 +386,7 @@ bounds = (lat_bounds, lon_bounds)
 # Define the drivers and their respective datasets
 drivers = {
     "temperature": dtem_times_dhdtem_masked,
-    "salinity": dsal_times_dhdsal_masked,
+    #"salinity": dsal_times_dhdsal_masked,
     "DIC": ddic_times_dhddic_masked,
     "alkalinity": dalk_times_dhdalk_masked
 }
@@ -401,7 +401,7 @@ def plot_contributions_present_future(data_present, data_future_fixed, data_futu
     for idx, (data, ax, period) in enumerate(zip(
         [data_present, data_future_fixed, data_future_moving], 
         axs, 
-        ["Present", "Future (Fixed Baseline)", "Future (Moving Baseline)"]
+        ["present", "future (fixed baseline)", "future (shifted baseline)"]
     )):
         # Add landmask
         ax.contourf(landmask_etopo.lon, landmask_etopo.lat, landmask_etopo, levels=1, colors='black', zorder=1)
@@ -1011,9 +1011,9 @@ def plot_driver_comparison(drivers):
         axs[2].plot(time_series_moving_ssp585_mean.time, time_series_moving_ssp585_mean, label="Moving Baseline SSP585", color=scenario_colors["ssp585_moving"], zorder=2)
 
         # Formatting
-        axs[0].set_title(f"{driver_name}: Present-day Mean Contribution to [H+]", fontsize=14)
-        axs[1].set_title(f"{driver_name}: Fixed Baseline Contribution to [H+]", fontsize=14)
-        axs[2].set_title(f"{driver_name}: Moving Baseline Contribution to [H+]", fontsize=14)
+        axs[0].set_title(f"{driver_name}: Present-day contribution", fontsize=14)
+        axs[1].set_title(f"{driver_name}: Future contribution (fixed baseline)", fontsize=14)
+        axs[2].set_title(f"{driver_name}: Future contribution (shifted baseline)", fontsize=14)
 
         axs[2].set_xlabel("Time", fontsize=12)
         axs[0].set_ylabel("Change in [H+]", fontsize=12)
@@ -1047,7 +1047,7 @@ def plot_driver_comparison(drivers):
 plot_driver_comparison(
     drivers={
         "Temperature": dtem_times_dhdtem_masked,
-        "Salinity": dsal_times_dhdsal_masked,
+        #"Salinity": dsal_times_dhdsal_masked,
         "DIC": ddic_times_dhddic_masked,
         "Alkalinity": dalk_times_dhdalk_masked
     }

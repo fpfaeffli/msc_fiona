@@ -37,24 +37,24 @@ class GetRegions():
         boundary_latitudes['southern']['maxlat'] = 34.7
         boundary_latitudes['central'] = dict()
         boundary_latitudes['central']['minlat'] = 34.7
-        boundary_latitudes['central']['maxlat'] = 40.5
+        boundary_latitudes['central']['maxlat'] = 43
         boundary_latitudes['northern'] = dict()
-        boundary_latitudes['northern']['minlat'] = 40.5
+        boundary_latitudes['northern']['minlat'] = 43
         boundary_latitudes['northern']['maxlat'] = 47
 
         boundary_d2coasts = dict()
         boundary_d2coasts['all_dists'] = dict()
         boundary_d2coasts['all_dists']['mindist'] = 0
-        boundary_d2coasts['all_dists']['maxdist'] = 370.4 #500
+        boundary_d2coasts['all_dists']['maxdist'] = 600
         boundary_d2coasts['coastal'] = dict()
         boundary_d2coasts['coastal']['mindist'] = 0
-        boundary_d2coasts['coastal']['maxdist'] = 100
+        boundary_d2coasts['coastal']['maxdist'] = 50
         # boundary_d2coasts['transition'] = dict()
         # boundary_d2coasts['transition']['mindist'] = 100
         # boundary_d2coasts['transition']['maxdist'] = 300
         boundary_d2coasts['offshore'] = dict()
-        boundary_d2coasts['offshore']['mindist'] = 100   # 300
-        boundary_d2coasts['offshore']['maxdist'] = 370.4 #500
+        boundary_d2coasts['offshore']['mindist'] = 50   # 300
+        boundary_d2coasts['offshore']['maxdist'] = 600
 
         regions_dict = dict()
         for boundary_d2coast in boundary_d2coasts.keys():
@@ -92,13 +92,13 @@ class GetRegions():
         for region in regions_dict.keys():
             # set the colour based on the distance to the coast
             if 'offshore' in region:
-                id_colour = '#1f77b4' # 'C0' blue
+                id_colour = 'saddlebrown' # 'C0' blue
             # elif 'transition' in region:
             #     id_colour = '#ff7f0e' # 'C1' orange
             elif 'coastal' in region:
-                id_colour = '#ff7f0e' # 'C1' orange '#2ca02c' # 'C2' green
+                id_colour = 'coral' # 'C1' orange '#2ca02c' # 'C2' green
             elif region == 'all_dists_all_lats':
-                id_colour = '#d62728' # 'C3' red
+                id_colour = 'black' # 'C3' red
             elif region == 'full_map':
                 id_colour = '#9467bd' # 'C4' purple
             # vary the colours based on the latitude band

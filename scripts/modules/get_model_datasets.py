@@ -493,7 +493,7 @@ class ModelGetter():
     def get_threshold_climatology_dataset(config,scenario,varia,threshold_type,threshold_value,nzlevs=37,analysis_start_year=2011,analysis_end_year=2021,baseperiod_start_year=2011,baseperiod_end_year=2021,aggregation_kernel=11,smoothing_kernel=31):
         sys.path.append('/home/fpfaeffli/msc_fiona/scripts/modules/')
         from set_thresh_and_clim_params import ThresholdParameters as ThresholdParameters
-        params = ThresholdParameters.Hplus_instance() #95th percentile threshold
+        params = ThresholdParameters.standard_instance() #90th percentile threshold
         depth = 0
         ensemble_run = '000'
 
@@ -524,6 +524,7 @@ class ModelGetter():
         # data_feb29 = np.mean(data_365[59:61,...],axis=0,keepdims=True)
         # data_366 = np.concatenate((data_365[:60,...],data_feb29,data_365[60:,...]),axis=0)
         return data_366
+
 
 
     @staticmethod

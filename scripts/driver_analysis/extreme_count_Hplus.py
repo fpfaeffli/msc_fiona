@@ -173,114 +173,59 @@ def calc_extreme_masks(inst_dict, thresh_dict):
 extreme_mask_dict = calc_extreme_masks(hplus, thresholds_mult)
 
 
-# %% COMPUTE THE THRESHOLD EXCEEDANCES (EXTREMES MASK) WITH REGIONAL FILTERING
-
-print("Calculating the extreme masks for each region...")
-
-def calc_extreme_masks_by_region(inst_dict, thresh_dict, ocean_ds):
-    extreme_mask_dict_region = dict()
-
-    # Define regions (latitude bounds)
-    regions = {
-        "northern": (40.5, 50),
-        "central": (34.7, 40.5),
-        "southern": (30, 34.7)
-    }
-
-    for config in configs:
-        extreme_mask_dict_region[config] = dict()
-        for scenario in scenarios:
-            extreme_mask_dict_region[config][scenario] = dict()
-            for threshold_type in ["present", "present_plus_meandelta"]:
-
-                print(f"Calculating extreme mask for {config}, {scenario}, {threshold_type}")
-
-                # Get the full dataset and latitudes
-                dataset = ocean_ds[config][scenario]
-                lat_rho_da = dataset.lat_rho
-
-                # Convert IndexVariable to DataArray
-                if isinstance(lat_rho_da, xr.IndexVariable):
-                    lat_rho_da = lat_rho_da.to_dataset(name="lat_rho").lat_rho  # Convert to DataArray
-
-                # Expand lat_rho_da if needed
-                if lat_rho_da.ndim == 1:
-                    lat_rho_da, _ = xr.broadcast(lat_rho_da, inst_dict[config][scenario])
-
-                # Initialize dictionary for region-specific masks
-                extreme_mask_dict_region[config][scenario][threshold_type] = {}
-
-                # Apply filtering for each region
-                for region, (lat_min, lat_max) in regions.items():
-                    
-                    # Create latitude mask
-                    lat_mask = (lat_rho_da >= lat_min) & (lat_rho_da < lat_max)
-
-                    # Compute extreme mask **with regional filtering**
-                    extreme_mask = (inst_dict[config][scenario] > thresh_dict[config][scenario][threshold_type]).where(lat_mask)
-
-                    # Store mask for this region
-                    extreme_mask_dict_region[config][scenario][threshold_type][region] = extreme_mask
-
-    return extreme_mask_dict_region
-
-# Compute the region-specific extreme masks
-extreme_mask_dict_region = calc_extreme_masks_by_region(hplus, thresholds_mult, ocean_ds)
-
-
-
 
 #%%
 ###############################
 #     COUNTING EXTREMES       #
 ###############################
 
-# %%
-# Count the number of extremes
-extreme_counts = dict()
-for config in extreme_mask_dict.keys():
-    extreme_counts[config] = dict()
-    for scenario in extreme_mask_dict[config].keys():
-        extreme_counts[config][scenario] = dict()
-        for threshold_type in extreme_mask_dict[config][scenario].keys():
-            extreme_counts[config][scenario][threshold_type] = np.sum(extreme_mask_dict[config][scenario][threshold_type].values)
-
-print(extreme_counts)
-
 #%%
-# Count the number of extremes per region
+# Function to compute area-weighted mean
+def area_weighted_mean(data, area):
+    """ Computes area-weighted mean, avoiding NaNs """
+    weighted_sum = np.nansum(data * area)  # Multiply by area and sum
+    total_area = np.nansum(area)  # Sum of all areas
+    return weighted_sum / total_area  # Compute weighted mean
 
-extreme_counts_region = dict()
-for config in extreme_mask_dict_region.keys():
-    extreme_counts_region[config] = {}
-    for scenario in extreme_mask_dict_region[config].keys():
-        extreme_counts_region[config][scenario] = {}
-        for region in extreme_mask_dict_region[config][scenario].keys():  # Loop through regions
-            extreme_counts_region[config][scenario][region] = {}
-            for threshold_type in extreme_mask_dict_region[config][scenario][region].keys():
-                # Compute sum only for the respective region
-                extreme_counts_region[config][scenario][region][threshold_type] = np.sum(
-                    extreme_mask_dict_region[config][scenario][region][threshold_type].values
-                )
+# Function to calculate the percentage of extreme days in a grid cell over the whole hindcast period
+def calculate_extreme_percentage(extreme_mask_dict, total_time_steps):
+    extreme_percentages = dict()
+    for config in configs:
+        extreme_percentages[config] = dict()
+        for scenario in scenarios:
+            extreme_percentages[config][scenario] = dict()
+            for threshold_type in ['present', 'present_plus_meandelta']:
+                extreme_days = extreme_mask_dict[config][scenario][threshold_type].sum(dim='time')
+                extreme_percentages[config][scenario][threshold_type] = (extreme_days / total_time_steps) * 100
+    return extreme_percentages
 
-print(extreme_counts_region)
+# Compute total number of time steps
+total_time_steps = extreme_mask_dict[configs[0]]["present"]["present"].shape[0]
 
+# Compute area-weighted extreme days per year for each scenario
+extreme_days_per_year_present = area_weighted_mean(
+    ((extreme_mask_dict[configs[0]]["present"]["present"].sum(dim="time") / total_time_steps) * 365),
+    model_area
+)
+extreme_days_per_year_fixed = []
+extreme_days_per_year_moving = []
 
+# Compute for SSP245 & SSP585
+for scenario in scenarios:
+    mean_fixed = area_weighted_mean(
+        ((extreme_mask_dict[configs[0]][scenario]["present"].sum(dim="time") / total_time_steps) * 365),
+        model_area
+    )
+    mean_moving = area_weighted_mean(
+        ((extreme_mask_dict[configs[0]][scenario]["present_plus_meandelta"].sum(dim="time") / total_time_steps) * 365),
+        model_area
+    )
 
-# %%
-# Calculate percentage of extremes
-extreme_percentages = dict()
-for config in extreme_mask_dict.keys():
-    extreme_percentages[config] = dict()
-    for scenario in extreme_mask_dict[config].keys():
-        extreme_percentages[config][scenario] = dict()
-        for threshold_type in extreme_mask_dict[config][scenario].keys():
-            total_events = np.prod(extreme_mask_dict[config][scenario][threshold_type].shape)  # Total time * lat * lon
-            extreme_count = np.sum(extreme_mask_dict[config][scenario][threshold_type].values)
-            extreme_percentages[config][scenario][threshold_type] = (extreme_count / total_events) * 100  # Convert to %
+    extreme_days_per_year_fixed.append(mean_fixed)
+    extreme_days_per_year_moving.append(mean_moving)
 
-
-print(extreme_percentages)
+# Calculate the percentage of extreme days
+extreme_percentages = calculate_extreme_percentage(extreme_mask_dict, total_time_steps)
 
 
 # %%
@@ -560,7 +505,7 @@ plot_extreme_days_map(ocean_ds, landmask_etopo, model_regions_dict, extreme_mask
 # %%
 
 
-def plot_extreme_days_comparison(ocean_ds, landmask_etopo, model_regions_dict, extreme_mask_dict, config="romsoc_fully_coupled"):
+def plot_extreme_days_comparison(ocean_ds, landmask_etopo, model_regions_dict, extreme_mask_dict, baseline_type, config="romsoc_fully_coupled"):
     """
     Plots a side-by-side comparison of mean extreme H+ days per year 
     for the scenarios: present, SSP245, and SSP585.
@@ -568,51 +513,48 @@ def plot_extreme_days_comparison(ocean_ds, landmask_etopo, model_regions_dict, e
     
     # Define the scenarios to plot
     scenarios = ["present", "ssp245", "ssp585"]
-
+    
     # Set bounds
     lat_bounds = [25, 50]
     lon_bounds = [225, 245]
-
+    
     # Create a single figure with 3 subplots (side by side)
     fig, axes = plt.subplots(1, 3, figsize=(18, 6), constrained_layout=True)
-
+    
     # Loop through scenarios and plot each one
     for i, scenario in enumerate(scenarios):
         ax = axes[i]
         dataset = ocean_ds[config][scenario]
-
+        
         # Extract lat/lon coordinates
         lat_rho = dataset.lat_rho.isel(time=0)
         lon_rho = dataset.lon_rho.isel(time=0)
-
+        
         # Compute mean extreme days per year per grid cell
-        total_time_steps = extreme_mask_dict[config][scenario]["present"].shape[0]
-        extreme_days_per_year = ((extreme_mask_dict[config][scenario]["present"].sum(dim="time") / total_time_steps) * 365).squeeze()
+        total_time_steps = extreme_mask_dict[config][scenario][baseline_type].shape[0]
+        extreme_days_per_year = ((extreme_mask_dict[config][scenario][baseline_type].sum(dim="time") / total_time_steps) * 365).squeeze()
+        print("Mean extreme days per year in the map:", np.nanmean(extreme_days_per_year.values))
+        print("Min extreme days in map:", np.nanmin(extreme_days_per_year.values))
+        print("Max extreme days in map:", np.nanmax(extreme_days_per_year.values))
+
+
 
         # Add solid black landmask
         ax.contourf(
             landmask_etopo.lon, landmask_etopo.lat, landmask_etopo,
-            levels=[0, 1], colors=['black'], zorder=1
+            levels=[0, 1], colors=['black'], zorder=3
         )
         
         # Add contour levels
-        contour_levels = np.linspace(0, extreme_days_per_year.max(), 20)
+        contour_levels = np.linspace(0, 365, 40)  # Consistent scale for all scenarios
 
+        
         # Create filled contour plot
         cf = ax.contourf(
-            lon_rho, lat_rho, extreme_days_per_year, levels=contour_levels, cmap="inferno", zorder=4, extend="both"
+            lon_rho, lat_rho, extreme_days_per_year, levels=contour_levels, cmap=cmocean.cm.amp, zorder=1, extend="both"
         )
-
-        # Add offshore vs. coastal region contour lines (no shading)
-        region_contour_colors = {'offshore_all_lats': 'black', 'coastal_all_lats': 'black'}
-        for region, color in region_contour_colors.items():
-            if region in model_regions_dict:
-                region_mask_dummy = xr.where(np.isnan(model_regions_dict[region]['mask']), 0, 1)
-                ax.contour(
-                    lon_rho, lat_rho, region_mask_dummy,
-                    levels=[0.5], colors=color, zorder=5, linewidths=1.2, linestyles="solid"
-                )
-
+        
+        
         # Set labels and titles
         ax.set_title(f"{scenario}", fontsize=16)
         ax.set_xlim(lon_bounds)
@@ -620,7 +562,7 @@ def plot_extreme_days_comparison(ocean_ds, landmask_etopo, model_regions_dict, e
         ax.set_xlabel("Longitude", fontsize=12)
         if i == 0:  # Only set ylabel for first subplot
             ax.set_ylabel("Latitude", fontsize=12)
-
+        
         # Format latitude & longitude labels
         yticks = np.arange(lat_bounds[0], lat_bounds[1] + 1, 5)
         xticks = np.arange(lon_bounds[0], lon_bounds[1] + 1, 5)
@@ -628,195 +570,399 @@ def plot_extreme_days_comparison(ocean_ds, landmask_etopo, model_regions_dict, e
         ax.set_xticks(xticks)
         ax.set_yticklabels([f"{lat}°N" for lat in yticks])
         ax.set_xticklabels([f"{xtick}°E" for xtick in xticks])
-
+    
     # Add colorbar below the subplots
     cbar_ax = fig.add_axes([0.25, -0.04, 0.5, 0.02])  # Adjusted placement
     cbar = plt.colorbar(cf, cax=cbar_ax, extend="both", orientation="horizontal")
-
-    #Set predefined tick values for the colorbar
+    
+    # Set predefined tick values for the colorbar
     cbar.set_ticks([0, 50, 100, 150, 200, 250, 300, 350])
     cbar.set_ticklabels([str(tick) for tick in [0, 50, 100, 150, 200, 250, 300, 350]])
-
+    
     cbar.set_label("Mean extreme H+ days per year", fontsize=14)
-
+    
     # Add suptitle
-    fig.suptitle("Comparison of mean extreme H+ days per year for different scenarios", fontsize=16)
-
+    if baseline_type == "present":
+        fig.suptitle(f"Comparison of mean extreme H+ days per year for different scenarios (fixed baseline)", fontsize=16)
+    if baseline_type == "present_plus_meandelta":
+        fig.suptitle(f"Comparison of mean extreme H+ days per year for different scenarios (moving baseline)", fontsize=16)
+    
     # Save 
-    output_path = '/nfs/sea/work/fpfaeffli/plots/extreme_days_per_year/extreme_Hplus_days_per_year_comparison.png'
+    output_path = f'/nfs/sea/work/fpfaeffli/plots/extreme_days_per_year/extreme_Hplus_days_per_year_comparison_{baseline_type}.png'
     plt.savefig(output_path, dpi=150, transparent=True, bbox_inches='tight')
     plt.show()
 
-
-# %%
-plot_extreme_days_comparison(ocean_ds, landmask_etopo, model_regions_dict, extreme_mask_dict, config="romsoc_fully_coupled")
+# Call the function for fixed and moving baselines
+plot_extreme_days_comparison(ocean_ds, landmask_etopo, model_regions_dict, extreme_mask_dict, "present", config="romsoc_fully_coupled")
+plot_extreme_days_comparison(ocean_ds, landmask_etopo, model_regions_dict, extreme_mask_dict, "present_plus_meandelta", config="romsoc_fully_coupled")
 
 
 #%%
-
-#Maps but with the bin approach
-
-
+# Plots extreme percentages
 
 # %%
 
-# Distance to coast plot
-
-def plot_extreme_Hplus_days_vs_distance(ocean_ds, model_d2coasts, extreme_mask_dict, config="romsoc_fully_coupled"):
+def plot_extreme_percentages(ocean_ds, landmask_etopo, extreme_percentages, baseline_type, config="romsoc_fully_coupled"):
+    """
+    Plots extreme percentage exceedances for each scenario: present, SSP245, and SSP585.
+    """
     
-
-    # Define scenarios and colors
-    scenarios = ["ssp245", "ssp585"]
-    colors = {"ssp245": "green", "ssp585": "purple"}
-
-    # Define distance bins (every 10 km up to 380 km)
-    bins_d2coast = np.arange(0, 380, 10)
-
-    # Create figure and axes
-    fig, ax = plt.subplots(figsize=(8, 6))
-
-    # Loop over scenarios
-    for scenario in scenarios:
-        # Compute mean extreme Hplus days per year per grid cell
-        total_time_steps = extreme_mask_dict[config][scenario]["present"].shape[0]
-        extreme_days_per_year = ((extreme_mask_dict[config][scenario]["present"].sum(dim="time") / total_time_steps) * 365).squeeze()
-
-        # Flatten the arrays
-        extreme_days_flat = extreme_days_per_year.values.flatten()
-        d2coast_flat = model_d2coasts["roms_only"].values.flatten()
-
-
-        # Remove NaNs
-        valid_mask = ~np.isnan(extreme_days_flat) & ~np.isnan(d2coast_flat)
-        extreme_days_flat = extreme_days_flat[valid_mask]
-        d2coast_flat = d2coast_flat[valid_mask]
-
-        # Compute mean and percentiles for each distance bin
-        mean_values, p25_values, p75_values = [], [], []
-
-        for bdx in range(len(bins_d2coast) - 1):
-            bin_mask = (d2coast_flat >= bins_d2coast[bdx]) & (d2coast_flat < bins_d2coast[bdx + 1])
-            if np.any(bin_mask):
-                mean_values.append(np.mean(extreme_days_flat[bin_mask]))
-                p25_values.append(np.percentile(extreme_days_flat[bin_mask], 25))
-                p75_values.append(np.percentile(extreme_days_flat[bin_mask], 75))
-            else:
-                mean_values.append(np.nan)
-                p25_values.append(np.nan)
-                p75_values.append(np.nan)
-
-        # Plot with shading for IQR
-        ax.plot(bins_d2coast[:-1], mean_values, color=colors[scenario], alpha=1, linewidth=2, label=scenario.upper())
-        ax.fill_between(bins_d2coast[:-1], p75_values, p25_values, color=colors[scenario], alpha=0.35)
-
-    # Formatting
-    ax.set_xlim([0, 360])
-    ax.grid(linestyle="--", alpha=0.25)
-    ax.axvline(100, color="black", linestyle="--", linewidth=2)  # Vertical line at 100 km
-    ax.set_xlabel("Distance to coast (km)", fontsize=12)
-    ax.set_ylabel("Mean extreme H+ days per year ", fontsize=12)
-    ax.set_title("Mean extreme H+ days per year vs. distance to coast", fontsize=16)
-
-    # Legend
-    legend_elements = [
-        Line2D([0], [0], color="green", lw=2, label="ssp245"),
-        Line2D([0], [0], color="purple", lw=2, label="ssp585"),
-    ]
-    ax.legend(handles=legend_elements, loc="center right", fontsize=12)
-
-    plt.ylim(220, 366)
-
-    # Save & Show
-    output_path = "/nfs/sea/work/fpfaeffli/plots/extreme_days_per_year/extreme_Hplus_days_vs_coast_future.png"
-    plt.savefig(output_path, dpi=200, transparent=True, bbox_inches="tight")
+    # Define scenarios to plot
+    scenarios = ["present", "ssp245", "ssp585"]
+    
+    # Set bounds
+    lat_bounds = [25, 50]
+    lon_bounds = [225, 245]
+    
+    # Create a figure with three subplots
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6), constrained_layout=True)
+    
+    for i, scenario in enumerate(scenarios):
+        ax = axes[i]
+        dataset = ocean_ds[config][scenario]
+        
+        # Extract lat/lon coordinates
+        lat_rho = dataset.lat_rho.isel(time=0)
+        lon_rho = dataset.lon_rho.isel(time=0)
+        
+        # Get the extreme percentage data and ensure it's 2D
+        extreme_perc = extreme_percentages[config][scenario][baseline_type].squeeze()
+        
+        # Print shape for debugging
+        print(f"Extreme percentage shape for {scenario} ({baseline_type} baseline): {extreme_perc.shape}")
+        
+        # Plot landmask
+        ax.contourf(
+            landmask_etopo.lon, landmask_etopo.lat, landmask_etopo,
+            levels=[0, 1], colors=['black'], zorder=3
+        )
+        
+        # Define contour levels
+        contour_levels = np.linspace(0, 100, 40)  # Scale from 0 to 100%
+        
+        # Create filled contour plot
+        cf = ax.contourf(
+            lon_rho, lat_rho, extreme_perc, levels=contour_levels, cmap=cmocean.cm.amp, zorder=1, extend="both"
+        )
+        
+        # Set title, labels, and formatting
+        ax.set_title(f"{scenario}", fontsize=16)
+        ax.set_xlim(lon_bounds)
+        ax.set_ylim(lat_bounds)
+        ax.set_xlabel("Longitude", fontsize=12)
+        if i == 0:
+            ax.set_ylabel("Latitude", fontsize=12)
+        
+        # Format latitude & longitude labels
+        yticks = np.arange(lat_bounds[0], lat_bounds[1] + 1, 5)
+        xticks = np.arange(lon_bounds[0], lon_bounds[1] + 1, 5)
+        ax.set_yticks(yticks)
+        ax.set_xticks(xticks)
+        ax.set_yticklabels([f"{lat}°N" for lat in yticks])
+        ax.set_xticklabels([f"{xtick}°E" for xtick in xticks])
+    
+    # Add colorbar
+    cbar_ax = fig.add_axes([0.25, -0.04, 0.5, 0.02])
+    cbar = plt.colorbar(cf, cax=cbar_ax, extend="both", orientation="horizontal")
+    cbar.set_label("Extreme percentage (%)", fontsize=14)
+    
+    # Set predefined tick values for the colorbar
+    cbar.set_ticks(np.arange(0, 101, 10))
+    cbar.set_ticklabels([str(tick) for tick in np.arange(0, 101, 10)])
+    
+    # Add suptitle
+    title_type = "fixed baseline" if baseline_type == "present" else "moving baseline"
+    fig.suptitle(f"Fraction of time experiencing extreme H+ concentrations across scenarios ({title_type})", fontsize=16)
+    
+    # Save and show plot
+    output_path = f'/nfs/sea/work/fpfaeffli/plots/extreme_days_per_year/extreme_percentages_comparison_{baseline_type}.png'
+    plt.savefig(output_path, dpi=150, transparent=True, bbox_inches='tight')
     plt.show()
 
-# Call the function for Hplus
-plot_extreme_Hplus_days_vs_distance(ocean_ds, model_d2coasts, extreme_mask_dict, config="romsoc_fully_coupled")
-
-
-
-
-
-
+# Example calls to the function for both baselines
+plot_extreme_percentages(ocean_ds, landmask_etopo, extreme_percentages, baseline_type="present", config="romsoc_fully_coupled")
+plot_extreme_percentages(ocean_ds, landmask_etopo, extreme_percentages, baseline_type="present_plus_meandelta", config="romsoc_fully_coupled")
 
 
 #%%
-# Distance to coast plot for whole area
+###############################
+#     PLOTTING DIST2COAST     #
+###############################
 
-def plot_extreme_Hplus_days_vs_distance(ocean_ds, model_d2coasts, extreme_mask_dict, config="romsoc_fully_coupled"):
+#%%
+# Distance to coast plots with the bin approach
+
+
+def plot_extreme_days_vs_distance(ocean_ds, model_d2coasts, extreme_mask_dict, config="romsoc_fully_coupled"):
+    """
+    Plots the mean extreme H+ days per year vs. distance to the coast for fixed and moving baselines in a single figure with two subplots.
+    """
     
-    # Define scenarios and colors (including present)
+    # Define scenarios and colors
     scenarios = ["present", "ssp245", "ssp585"]
     colors = {"present": "black", "ssp245": "green", "ssp585": "purple"}
-
+    
     # Define distance bins (every 10 km up to 380 km)
     bins_d2coast = np.arange(0, 380, 10)
-
-    # Create figure and axes
-    fig, ax = plt.subplots(figsize=(8, 6))
-
-    # Loop over scenarios
-    for scenario in scenarios:
-        # Compute mean extreme Hplus days per year per grid cell
-        total_time_steps = extreme_mask_dict[config][scenario]["present"].shape[0]
-        extreme_days_per_year = ((extreme_mask_dict[config][scenario]["present"].sum(dim="time") / total_time_steps) * 365).squeeze()
-
-        # Flatten the arrays
-        extreme_days_flat = extreme_days_per_year.values.flatten()
-        d2coast_flat = model_d2coasts["roms_only"].values.flatten()
-
-        # Remove NaNs
-        valid_mask = ~np.isnan(extreme_days_flat) & ~np.isnan(d2coast_flat)
-        extreme_days_flat = extreme_days_flat[valid_mask]
-        d2coast_flat = d2coast_flat[valid_mask]
-
-        # Compute mean and percentiles for each distance bin
-        mean_values, p25_values, p75_values = [], [], []
-
-        for bdx in range(len(bins_d2coast) - 1):
-            bin_mask = (d2coast_flat >= bins_d2coast[bdx]) & (d2coast_flat < bins_d2coast[bdx + 1])
-            if np.any(bin_mask):
-                mean_values.append(np.mean(extreme_days_flat[bin_mask]))
-                p25_values.append(np.percentile(extreme_days_flat[bin_mask], 25))
-                p75_values.append(np.percentile(extreme_days_flat[bin_mask], 75))
-            else:
-                mean_values.append(np.nan)
-                p25_values.append(np.nan)
-                p75_values.append(np.nan)
-
-        # Plot with shading for IQR (exclude shading for present run)
-        ax.plot(bins_d2coast[:-1], mean_values, color=colors[scenario], alpha=1, linewidth=2, label=scenario.upper())
+    
+    # Create figure with two subplots
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6), constrained_layout=True)
+    baseline_types = ["present", "present_plus_meandelta"]
+    titles = ["fixed baseline", "moving baseline"]
+    
+    # Loop over baseline types
+    for ax, baseline_type, title in zip(axes, baseline_types, titles):
+        for scenario in scenarios:
+            # Compute mean extreme H+ days per year per grid cell
+            total_time_steps = extreme_mask_dict[config][scenario][baseline_type].shape[0]
+            extreme_days_per_year = ((extreme_mask_dict[config][scenario][baseline_type].sum(dim="time") / total_time_steps) * 365).squeeze()
+            
+            # Flatten the arrays
+            extreme_days_flat = extreme_days_per_year.values.flatten()
+            d2coast_flat = model_d2coasts["roms_only"].values.flatten()
+            
+            # Remove NaNs
+            valid_mask = ~np.isnan(extreme_days_flat) & ~np.isnan(d2coast_flat)
+            extreme_days_flat = extreme_days_flat[valid_mask]
+            d2coast_flat = d2coast_flat[valid_mask]
+            
+            # Compute mean and percentiles for each distance bin
+            mean_values, p25_values, p75_values = [], [], []
+            
+            for bdx in range(len(bins_d2coast) - 1):
+                bin_mask = (d2coast_flat >= bins_d2coast[bdx]) & (d2coast_flat < bins_d2coast[bdx + 1])
+                if np.any(bin_mask):
+                    mean_values.append(np.mean(extreme_days_flat[bin_mask]))
+                    p25_values.append(np.percentile(extreme_days_flat[bin_mask], 25))
+                    p75_values.append(np.percentile(extreme_days_flat[bin_mask], 75))
+                else:
+                    mean_values.append(np.nan)
+                    p25_values.append(np.nan)
+                    p75_values.append(np.nan)
+            
         
-        if scenario != "present":  # No IQR shading for present
-            ax.fill_between(bins_d2coast[:-1], p75_values, p25_values, color=colors[scenario], alpha=0.2)
-
-    # Formatting
-    ax.set_xlim([0, 360])
-    ax.grid(linestyle="--", alpha=0.25)
-    ax.axvline(100, color="black", linestyle="--", linewidth=2)  # Vertical line at 100 km
-    ax.set_xlabel("Distance to coast (km)", fontsize=12)
-    ax.set_ylabel("Mean extreme H+ days per year", fontsize=12)
-    ax.set_title("Mean extreme H+ days per year vs. distance to coast", fontsize=16)
-
-    # Legend (adding present)
-    legend_elements = [
+            # Plot with shading for IQR for all scenarios
+            ax.plot(bins_d2coast[:-1], mean_values, color=colors[scenario], alpha=1, linewidth=2, label=scenario.upper())
+            ax.fill_between(bins_d2coast[:-1], p75_values, p25_values, color=colors[scenario], alpha=0.35)
+        
+        # Formatting
+        ax.set_xlim([0, 360])
+        ax.grid(linestyle="--", alpha=0.25)
+        ax.axvline(100, color="black", linestyle="--", linewidth=2)  # Vertical line at 100 km
+        ax.set_xlabel("Distance to coast (km)", fontsize=12)
+        ax.set_ylabel("Mean extreme H+ days per year", fontsize=12)
+        ax.set_title(f"{title}", fontsize=16)
+        
+        
+        # Legend
+        # Add a single legend below the subplots
+        legend_elements = [
         Line2D([0], [0], color="black", lw=2, label="present"),
         Line2D([0], [0], color="green", lw=2, label="ssp245"),
         Line2D([0], [0], color="purple", lw=2, label="ssp585"),
     ]
-    ax.legend(handles=legend_elements, loc="center right", fontsize=12)
-
-    plt.ylim(0, 366)  # Keep Y-axis limit
-
+        fig.legend(handles=legend_elements, loc="lower center", bbox_to_anchor=(0.5, -0.1), ncol=3, fontsize=12)
+    
+    fig.suptitle(f"Comparison of extreme H+ days per year for different scenarios from distance to coast", fontsize=16, y=1.05)
+    plt.ylim(0, 366)
+    
     # Save & Show
-    output_path = "/nfs/sea/work/fpfaeffli/plots/extreme_days_per_year/extreme_Hplus_days_vs_coast_with_present.png"
+    output_path = "/nfs/sea/work/fpfaeffli/plots/extreme_days_per_year/extreme_Hplus_days_vs_coast_fixed_vs_moving.png"
     plt.savefig(output_path, dpi=200, transparent=True, bbox_inches="tight")
     plt.show()
 
-# Call the function for Hplus
-plot_extreme_Hplus_days_vs_distance(ocean_ds, model_d2coasts, extreme_mask_dict, config="romsoc_fully_coupled")
+# Call the function
+plot_extreme_days_vs_distance(ocean_ds, model_d2coasts, extreme_mask_dict, config="romsoc_fully_coupled")
+
+
+#%%
+###############################
+#     PLOTTING HISTOGRAM      #
+###############################
+
+#%%
+#Plot histogram of extreme H+ values per scenario
+
+# Define distinct colors for each scenario
+colors = {
+    "present": "#1f77b4",  # Blue
+    "ssp245": "#ff7f0e",   # Orange
+    "ssp585": "#2ca02c"    # Green
+}
+
+# Extract extreme H+ values for each scenario
+extreme_values = {}
+statistics = {}  # Store mean, median, and std for each scenario
+
+for scenario in scenarios:
+    mask = extreme_mask_dict['romsoc_fully_coupled'][scenario]['present'].values
+    hplus_values = hplus['romsoc_fully_coupled'][scenario].values
+    extreme_values[scenario] = hplus_values[mask]  # Apply mask to get extreme values
+
+    # Calculate statistics
+    statistics[scenario] = {
+        "mean": np.nanmean(extreme_values[scenario]),
+        "median": np.nanmedian(extreme_values[scenario]),
+        "std": np.nanstd(extreme_values[scenario])
+    }
+
+# Create figure and axis
+fig, ax = plt.subplots(figsize=(12, 6))
+bins = 50  # Number of bins for the histogram
+
+for scenario in scenarios:
+    
+    # Plot histogram
+    ax.hist(
+        extreme_values[scenario], bins=bins, alpha=0.6, 
+        label=f"{scenario}\nmean: {statistics[scenario]['mean']:.2e}\nmedian: {statistics[scenario]['median']:.2e}\nStd: {statistics[scenario]['std']:.2e}",
+        density=True, color=colors[scenario], edgecolor='black'
+    )
+    
+    # Plot mean (solid line)
+    ax.axvline(statistics[scenario]['mean'], color=colors[scenario], linestyle='-', linewidth=2)
+    
+    # Plot median (dashed line)
+    ax.axvline(statistics[scenario]['median'], color=colors[scenario], linestyle='--', linewidth=2)
+    
+    # Plot standard deviation as shaded area
+    ax.fill_betweenx(
+        y=[0, ax.get_ylim()[1]], 
+        x1=statistics[scenario]['mean'] - statistics[scenario]['std'], 
+        x2=statistics[scenario]['mean'] + statistics[scenario]['std'], 
+        color=colors[scenario], alpha=0.2
+    )
+
+# Improve readability
+ax.set_xlabel('H$^+$ concentrations during extremes [mol/L]', fontsize=14)
+ax.set_ylabel('Density', fontsize=14)
+ax.set_title('Histogram of [H$^+$] during extremes for present and future scenarios (fixed baseline)', fontsize=16, pad=20)
+ax.grid(axis='y', linestyle='--', alpha=0.7)
+ax.tick_params(axis='both', labelsize=12)
+
+# Move legend outside the plot
+ax.legend(title="Scenarios & Stats", fontsize=10, loc='upper left', bbox_to_anchor=(1.05, 1), borderaxespad=0.)
+
+# Adjust layout to fit legend
+plt.tight_layout(rect=[0, 0, 0.85, 1])  # Leaves space for the legend
+
+# Show the plot
+output_path = "/nfs/sea/work/fpfaeffli/plots/statistics/histogram_extreme_hplus_values_fixed_baseline.png"
+plt.savefig(output_path, dpi=200, transparent=True, bbox_inches="tight")
+plt.show()
+
 
 # %%
 
-#
+#Plot histogram of extreme H+ values per scenario
+
+# Define distinct colors for each scenario
+colors = {
+    "present": "#1f77b4",  # Blue
+    "ssp245": "#ff7f0e",   # Orange
+    "ssp585": "#2ca02c"    # Green
+}
+
+# Extract extreme H+ values for each scenario
+extreme_values = {}
+statistics = {}  # Store mean, median, and std for each scenario
+
+for scenario in scenarios:
+    mask = extreme_mask_dict['romsoc_fully_coupled'][scenario]['present_plus_meandelta'].values
+    hplus_values = hplus['romsoc_fully_coupled'][scenario].values
+    extreme_values[scenario] = hplus_values[mask]  # Apply mask to get extreme values
+
+    # Calculate statistics
+    statistics[scenario] = {
+        "mean": np.nanmean(extreme_values[scenario]),
+        "median": np.nanmedian(extreme_values[scenario]),
+        "std": np.nanstd(extreme_values[scenario])
+    }
+
+# Create figure and axis
+fig, ax = plt.subplots(figsize=(12, 6))
+bins = 50  # Number of bins for the histogram
+
+for scenario in scenarios:
+    # Plot histogram
+    ax.hist(
+        extreme_values[scenario], bins=bins, alpha=0.6, 
+        label=f"{scenario}\nmean: {statistics[scenario]['mean']:.2e}\nmedian: {statistics[scenario]['median']:.2e}\nStd: {statistics[scenario]['std']:.2e}",
+        density=True, color=colors[scenario], edgecolor='black'
+    )
+    
+    # Plot mean (solid line)
+    ax.axvline(statistics[scenario]['mean'], color=colors[scenario], linestyle='-', linewidth=2)
+    
+    # Plot median (dashed line)
+    ax.axvline(statistics[scenario]['median'], color=colors[scenario], linestyle='--', linewidth=2)
+    
+    # Plot standard deviation as shaded area
+    ax.fill_betweenx(
+        y=[0, ax.get_ylim()[1]], 
+        x1=statistics[scenario]['mean'] - statistics[scenario]['std'], 
+        x2=statistics[scenario]['mean'] + statistics[scenario]['std'], 
+        color=colors[scenario], alpha=0.2
+    )
+
+# Improve readability
+ax.set_xlabel('H$^+$ concentrations during extremes [mol/L]', fontsize=14)
+ax.set_ylabel('Density', fontsize=14)
+ax.set_title('Histogram of [H$^+$] during extremes for present and future scenarios (moving baseline)', fontsize=16, pad=20)
+ax.grid(axis='y', linestyle='--', alpha=0.7)
+ax.tick_params(axis='both', labelsize=12)
+
+# Move legend outside the plot
+ax.legend(title="Scenarios & Stats", fontsize=10, loc='upper left', bbox_to_anchor=(1.05, 1), borderaxespad=0.)
+
+# Adjust layout to fit legend
+plt.tight_layout(rect=[0, 0, 0.85, 1])  # Leaves space for the legend
+
+# Show the plot
+output_path = "/nfs/sea/work/fpfaeffli/plots/statistics/histogram_extreme_hplus_values_moving_baseline.png"
+plt.savefig(output_path, dpi=200, transparent=True, bbox_inches="tight")
+plt.show()
+
+# %%
+
+# %%
+# %%
+# Import necessary libraries
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Ensure hplus is defined and extract values for each scenario
+scenarios = ["present", "ssp245", "ssp585"]
+hplus_values_dict = {
+    scenario: np.concatenate([hplus[config][scenario].values.flatten()
+                              for config in hplus.keys() if scenario in hplus[config]])
+    for scenario in scenarios
+}
+
+# Define colors for each scenario
+colors = {
+    "present": "#1f77b4",  # Blue
+    "ssp245": "#ff7f0e",   # Orange
+    "ssp585": "#2ca02c"    # Green
+}
+
+# Plot the distributions
+plt.figure(figsize=(10, 6))
+for scenario in scenarios:
+    plt.hist(hplus_values_dict[scenario], bins=50, density=True, alpha=0.6, 
+             edgecolor='black', label=scenario, color=colors[scenario])
+
+# Add labels, title, and grid
+plt.xlabel('H+ concentrations [mol/L]')
+plt.ylabel('Density')
+plt.title('Distribution of [H+]')
+plt.legend()  # Add legend
+plt.grid(True)
+
+# Set x-axis limit
+plt.xlim(0.2e-8, 3.0e-8)
+
+# Save and show the plot
+output_path = "/nfs/sea/work/fpfaeffli/plots/statistics/histogram_Hplus_distribution.png"
+plt.savefig(output_path, dpi=200, transparent=True, bbox_inches="tight")
+plt.show()

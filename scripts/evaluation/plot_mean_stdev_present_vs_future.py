@@ -50,7 +50,7 @@ for config in configs:
         ocean_ds[config][scenario] = ModelGetter.get_model_dataset(config, scenario, simulation_type, ensemble_run, model_temp_resolution, vert_struct, vtype='oceanic', parent_model=parent_model)
 
 #%% Define variable
-varias = ['omega_arag_offl'] # 'pH_offl' , 'Hplus' , 'omega_arag_offl'
+varias = ['pH_offl'] # 'pH_offl' , 'Hplus' , 'omega_arag_offl'
 
 #%% Define params based on the variable
 

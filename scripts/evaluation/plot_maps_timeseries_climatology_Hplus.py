@@ -44,7 +44,7 @@ from get_obs_datasets import ObsGetter as ObsGetter
 
 #%% Setting the variable to compare and across which models to compare
 
-var = 'Hplus'
+var = 'pH_offl'
 
 dep = 0 # m
 vert_struct = 'zavg'    # 'zavg'
@@ -57,7 +57,7 @@ scenario = 'present'
 simulation_type = 'hindcast'
 ensemble_run = '000'
 vtype = 'oceanic'
-configs = ['roms_only','romsoc_fully_coupled']
+configs = ['romsoc_fully_coupled']
 
 #%% Getting model datasets
 

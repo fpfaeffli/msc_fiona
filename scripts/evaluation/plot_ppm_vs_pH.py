@@ -76,8 +76,6 @@ def plot_general_means(ppm_values, coastal_means, offshore_means, ylabel, title,
 #%%
 
 SAVEDIR = '/nfs/sea/work/fpfaeffli/plots/pH_vs_CO2/'
-os.makedirs(SAVEDIR, exist_ok=True)
-
 # CO2 ppm values
 ppm_values = [414, 600, 1100] # 414ppm = present, 600ppm = ssp245 scenario, 1100ppm = ssp585 scenario
 
@@ -130,6 +128,7 @@ plot_all_regions_combined(
     ylim=(7.7, 8.2)
 )
 
+#%%
 # 2. Plot pH split into coastal and offshore regions
 plot_split_coastal_offshore(
     ppm_values=ppm_values,
@@ -140,6 +139,7 @@ plot_split_coastal_offshore(
     ylim=(7.7, 8.2)
 )
 
+#%%
 # 3. Plot general mean pH values
 plot_general_means(
     ppm_values=ppm_values,
@@ -234,7 +234,7 @@ pH_means = np.mean([pH_values[region] for region in pH_values], axis=0)
 
 # Plot pH vs CO2 for the three scenarios
 plt.figure(figsize=(10, 6))
-plt.plot(ppm_values, pH_means, marker='o', linestyle='-', color='blue', label='Mean pH')
+plt.plot(ppm_values, pH_means, marker='o', linestyle='-', color='blue')
 
 plt.xlabel('$CO_2$ [ppm]', fontsize=12)
 plt.ylabel('pH', fontsize=12)

@@ -16,7 +16,7 @@ class AuxGetter():
     def get_etopo_data():
         # load the ETOPO data (Earth Topography data) -> function uses 
         # ETOPO data to identify where land and water are located
-        topopath='/nfs/kryo/work/updata/bathymetry/ETOPO1/'
+        topopath='/net/sea/work/datasets/gridded/ocean/2d/observation/bathymetry/ETOPO1/'
         topofile='ETOPO5_mean_bath.nc'
         ds = xr.open_dataset(topopath+topofile)
         ds = ds.rename_dims({'latitude':'lat','longitude':'lon'})

@@ -32,7 +32,7 @@ import func_for_clim_thresh
 reload(func_for_clim_thresh)
 from func_for_clim_thresh import ThreshClimFuncs
 
-from plotting_functions_general import PlotFuncs as PlotFuncs
+from get_auxiliary_data import AuxGetter as AuxGetter
 
 from matplotlib.lines import Line2D
 import glob
@@ -51,7 +51,7 @@ model_regions_dict = GetRegions.define_CalCS_regions(model_area.lon, model_area.
 
 
 # Load landmask
-landmask_etopo = PlotFuncs.get_etopo_data()
+landmask_etopo = AuxGetter.get_etopo_data()
 
 #%% 
 
@@ -62,7 +62,7 @@ params = ThresholdParameters.Hplus_instance() #95th percentile threshold
 
 # Defining variables
 model_temp_resolution = 'daily' # 'monthly'
-scenarios = ['ssp585'] # ,'present'
+scenarios = ['present'] # ,'present'
 configs = ['romsoc_fully_coupled'] # [ms_only'] 
 simulation_type = 'hindcast'
 parent_model = 'mpi-esm1-2-hr'
@@ -184,17 +184,128 @@ def plot_neutral_map(ocean_ds, landmask_etopo, bounds, model_regions_dict, confi
     ax.set_title("Study region with coastal and offshore regions", fontsize=14)
 
     # Save & Show
-    plt.savefig(f'/nfs/sea/work/fpfaeffli/plots/neutral_maps/neutral_map_offshore_coastal_region.png', dpi=150, transparent=True, bbox_inches='tight')
+    #plt.savefig(f'/nfs/sea/work/fpfaeffli/plots/neutral_maps/neutral_map_offshore_coastal_region.png', dpi=150, transparent=True, bbox_inches='tight')
     plt.show()
 
 # Example execution
 bounds = ([25, 50], [225, 245])  # Example latitude and longitude bounds
 plot_neutral_map(ocean_ds, landmask_etopo, bounds, model_regions_dict)
 
+#%%
+# Map which plots the whole model output region
+
+def plot_model_domain_with_grid(ocean_ds, landmask_etopo, config="romsoc_fully_coupled", scenario="ssp585"):
+    
+    dataset = ocean_ds[config][scenario]
+    lat_rho = dataset.lat_rho.isel(time=0)
+    lon_rho = dataset.lon_rho.isel(time=0)
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+
+    # Plot landmask UNDERNEATH the domain
+    ax.contourf(
+        landmask_etopo.lon, landmask_etopo.lat, landmask_etopo,
+        levels=[0, 1], colors=['black'], zorder=2
+    )
+
+    # Fill the model domain with blue
+    ocean_mask = np.ones_like(lat_rho)
+    ax.contourf(
+        lon_rho, lat_rho, ocean_mask,
+        levels=[0.5, 1.5], colors=['skyblue'], alpha=0.7, zorder=1
+    )
+
+    # Plot ROMS gridlines (no outer border)
+    stride = 10  # adjust to 1 for full grid
+    for i in range(0, lat_rho.shape[0], stride):  # horizontal grid lines
+        ax.plot(lon_rho[i, :], lat_rho[i, :], color='black', linewidth=0.4, alpha=0.5, zorder=3)
+    for j in range(0, lat_rho.shape[1], stride):  # vertical grid lines
+        ax.plot(lon_rho[:, j], lat_rho[:, j], color='black', linewidth=0.4, alpha=0.5, zorder=3)
+
+    # Axis formatting
+    ax.set_xlabel("Longitude", fontsize=12)
+    ax.set_ylabel("Latitude", fontsize=12)
+    ax.set_xlim(lon_rho.min(), lon_rho.max())
+    ax.set_ylim(lat_rho.min(), lat_rho.max())
+
+    # Set ticks at every 10°
+    yticks = np.arange(np.floor(lat_rho.min()/10)*10, np.ceil(lat_rho.max()/10)*10 + 1, 10)
+    xticks = np.arange(np.floor(lon_rho.min()/10)*10, np.ceil(lon_rho.max()/10)*10 + 1, 10)
+    ax.set_yticks(yticks)
+    ax.set_xticks(xticks)
+    ax.set_yticklabels([f"{lat:.0f}°N" for lat in yticks])
+    ax.set_xticklabels([f"{lon:.0f}°E" for lon in xticks])
+
+    # General formatting
+    ax.set_aspect('auto')
+    plt.tight_layout()
+    plt.show()
+
+
+plot_model_domain_with_grid(ocean_ds, landmask_etopo)
+
+
+#%%
+# Function to plot entire model domain with gridlines and mean pH
+
+
+def plot_model_pH_with_grid(ocean_ds, landmask_etopo, config="romsoc_fully_coupled", scenario="present"):
+    """
+    Plots surface pH (pH_offl) over the full ROMS model domain.
+    Overlays model gridlines and landmask. Limits color range to pH 1–15.
+    """
+    dataset = ocean_ds[config][scenario]
+    lat_rho = dataset.lat_rho.isel(time=0)
+    lon_rho = dataset.lon_rho.isel(time=0)
+    
+    # Extract pH (select first time step and surface depth)
+    pH = dataset['pH_offl'].isel(depth=0).mean(dim='time', skipna=True)
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+
+    # Plot pH field with fixed color range
+    p = ax.pcolormesh(lon_rho, lat_rho, pH, shading='auto', cmap='cmo.ice', vmin=1, vmax=15, zorder=1)
+    cbar = plt.colorbar(p, ax=ax, orientation='vertical', label='pH')
+
+    # Overlay gridlines
+    stride = 5
+    for i in range(0, lat_rho.shape[0], stride):
+        ax.plot(lon_rho[i, :], lat_rho[i, :], color='gray', linewidth=0.4, alpha=0.5, zorder=2)
+    for j in range(0, lat_rho.shape[1], stride):
+        ax.plot(lon_rho[:, j], lat_rho[:, j], color='gray', linewidth=0.4, alpha=0.5, zorder=2)
+
+    # Overlay landmask
+    ax.contourf(
+        landmask_etopo.lon, landmask_etopo.lat, landmask_etopo,
+        levels=[0, 1], colors=['black'], zorder=3
+    )
+
+    # Axis formatting
+    ax.set_xlabel("Longitude", fontsize=12)
+    ax.set_ylabel("Latitude", fontsize=12)
+    ax.set_xlim(lon_rho.min(), lon_rho.max())
+    ax.set_ylim(lat_rho.min(), lat_rho.max())
+
+    # Ticks at 10° intervals
+    yticks = np.arange(np.floor(lat_rho.min()/10)*10, np.ceil(lat_rho.max()/10)*10 + 1, 10)
+    xticks = np.arange(np.floor(lon_rho.min()/10)*10, np.ceil(lon_rho.max()/10)*10 + 1, 10)
+    ax.set_yticks(yticks)
+    ax.set_xticks(xticks)
+    ax.set_yticklabels([f"{lat:.0f}°N" for lat in yticks])
+    ax.set_xticklabels([f"{lon:.0f}°E" for lon in xticks])
+
+    ax.set_aspect('auto')
+    ax.set_title("Surface Ocean pH (pH_offl)", fontsize=14)
+    plt.tight_layout()
+    plt.show()
+
+plot_model_pH_with_grid(ocean_ds, landmask_etopo)
 
 
 #%%
 # Function to plot a neutral map with a single marked point and a solid black landmask
+target_lat = 38.5
+target_lon = 236.5
 
 def plot_neutral_map_with_point(ocean_ds, landmask_etopo, bounds, target_lat, target_lon, config="romsoc_fully_coupled", scenario="present"):
     """
@@ -277,9 +388,8 @@ lon_bounds = (225, 245)
 bounds = (lat_bounds, lon_bounds)
 
 # Example 1: Input in WEST (Convert 125°W → 235°E)
-target_lat = 40  
-target_lon = -125  
-
+target_lat = 38.5
+target_lon = 236.5
 # Example 2: Input in EAST (No conversion needed)
 # target_lon = 125  # Example: Longitude 125°E
 

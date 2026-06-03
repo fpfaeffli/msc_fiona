@@ -45,7 +45,7 @@ params = ThresholdParameters.Hplus_instance() #95th percentile threshold
 #%%
 # Defining variables
 model_temp_resolution = 'daily' # 'monthly'
-scenarios = ['present','ssp585', 'ssp245'] # ,'ssp245'
+scenarios = ['present', 'ssp585'] # ,'ssp245'
 configs = ['romsoc_fully_coupled'] # [ms_only'] 
 simulation_type = 'hindcast'
 parent_model = 'mpi-esm1-2-hr'
@@ -57,14 +57,8 @@ depth = 0
 # Get the model datasets for the oceanic and atmospheric variables
 
 ocean_ds = dict()
-atmosphere_ds = dict()
-pressure_ds = dict()
-cloud_ds = dict()
 for config in configs:
      ocean_ds[config] = dict()
-     atmosphere_ds[config] = dict()
-     pressure_ds[config] = dict()
-     cloud_ds[config] = dict()
      for scenario in scenarios:
           print(f'--{config}, {scenario}--')
           print('ocean...')
